@@ -37,6 +37,8 @@ try:
     from ..rendering.dashboard import render_dashboard
     from ..simulation.thermal import ThermalAlarm, ThermalSimulation
     from ..simulation.power import PowerAlarm, PowerSimulation
+    from ..scenarios.base import Scenario, ScenarioResult
+    from ..scenarios.registry import get_scenario, random_scenario
 except ImportError:
     from config import (
         ASHRAE_CLASSES,
@@ -49,6 +51,8 @@ except ImportError:
     from rendering.dashboard import render_dashboard
     from simulation.thermal import ThermalAlarm, ThermalSimulation
     from simulation.power import PowerAlarm, PowerSimulation
+    from scenarios.base import Scenario, ScenarioResult
+    from scenarios.registry import get_scenario, random_scenario
 
 
 # Default episode configuration
@@ -77,6 +81,7 @@ class DcOpsEnvironment(Environment):
         self._thermal_sim: ThermalSimulation | None = None
         self._power_sim: PowerSimulation | None = None
         self._config: DatacenterConfig | None = None
+        self._scenario: Scenario | None = None
         self._step_budget: int = DEFAULT_STEP_BUDGET
         self._game_time_per_step_s: float = DEFAULT_GAME_TIME_PER_STEP_S
         self._sim_dt_s: float = DEFAULT_SIM_DT_S
@@ -96,6 +101,9 @@ class DcOpsEnvironment(Environment):
         """Reset the environment and return initial observation.
 
         Kwargs:
+            scenario (str | Scenario): Scenario ID (e.g. 'A1') or Scenario instance.
+                If provided, overrides config/alert/step_budget/scenario_type.
+                If not provided, uses raw kwargs (backward compatible).
             config (DatacenterConfig): Custom datacenter configuration.
             step_budget (int): Max steps for the episode.
             game_time_per_step_s (float): Simulation time per step.
@@ -114,13 +122,41 @@ class DcOpsEnvironment(Environment):
         self._action_history = []
         self._escalated = False
 
-        # Configuration
+        # Resolve scenario
+        scenario_arg = kwargs.get("scenario")
+        if isinstance(scenario_arg, str):
+            self._scenario = get_scenario(scenario_arg)
+        elif isinstance(scenario_arg, Scenario):
+            self._scenario = scenario_arg
+        elif scenario_arg is None and kwargs.get("random_scenario"):
+            self._scenario = random_scenario(
+                scenario_type=kwargs.get("scenario_type"),
+                difficulty=kwargs.get("difficulty"),
+                seed=seed,
+            )
+        else:
+            self._scenario = None
+
+        # Configuration — scenario can modify the base config
         self._config = kwargs.get("config", make_default_datacenter_config())
-        self._step_budget = kwargs.get("step_budget", DEFAULT_STEP_BUDGET)
-        self._game_time_per_step_s = kwargs.get("game_time_per_step_s", DEFAULT_GAME_TIME_PER_STEP_S)
+        if self._scenario:
+            self._config = self._scenario.configure(self._config)
+
+        # Episode parameters — scenario provides defaults, kwargs can override
+        if self._scenario:
+            self._step_budget = kwargs.get("step_budget", self._scenario.step_budget)
+            self._game_time_per_step_s = kwargs.get(
+                "game_time_per_step_s", self._scenario.game_time_per_step_s
+            )
+            self._scenario_type = kwargs.get("scenario_type", self._scenario.scenario_type)
+            self._alert = kwargs.get("alert", self._scenario.alert_message)
+        else:
+            self._step_budget = kwargs.get("step_budget", DEFAULT_STEP_BUDGET)
+            self._game_time_per_step_s = kwargs.get("game_time_per_step_s", DEFAULT_GAME_TIME_PER_STEP_S)
+            self._scenario_type = kwargs.get("scenario_type", "")
+            self._alert = kwargs.get("alert", "")
+
         self._sim_dt_s = self._config.simulation_dt_s
-        self._scenario_type = kwargs.get("scenario_type", "")
-        self._alert = kwargs.get("alert", "")
 
         # Initialize simulations
         self._thermal_sim = ThermalSimulation(self._config)
@@ -134,13 +170,16 @@ class DcOpsEnvironment(Environment):
         else:
             self._power_sim = None
 
-        # Apply fault injection if specified
-        fault = kwargs.get("fault_injection")
-        if fault:
-            self._apply_fault_injection(fault)
-
-        # Run a few steps to reach quasi-steady-state
-        self._warmup_simulation()
+        # Apply fault injection — scenario or raw kwargs
+        if self._scenario:
+            # Warmup FIRST, then inject fault (so DC is at steady-state)
+            self._warmup_simulation()
+            self._scenario.inject_fault(self._thermal_sim, self._power_sim)
+        else:
+            fault = kwargs.get("fault_injection")
+            if fault:
+                self._apply_fault_injection(fault)
+            self._warmup_simulation()
 
         # Render initial observation
         return self._make_observation(action_result="Environment initialized. Awaiting your command.")
@@ -179,9 +218,18 @@ class DcOpsEnvironment(Environment):
         if cmd_result.command_name == "escalate":
             self._escalated = True
             self._done = True
+            # Scenario may penalize escalation differently
+            escalate_penalty = -0.5
+            if self._scenario:
+                sr = self._scenario.evaluate_step(
+                    self._thermal_sim, self._power_sim,
+                    action.command, self._action_history,
+                    self._state.step_count,
+                )
+                escalate_penalty = sr.procedure_reward + sr.scenario_reward - 0.5
             return self._make_observation(
                 action_result=cmd_result.message,
-                reward=-0.5,  # Penalty for escalating
+                reward=escalate_penalty,
             )
 
         # 2. Advance simulation
@@ -192,10 +240,31 @@ class DcOpsEnvironment(Environment):
 
         # 4. Compute reward
         reward = self._compute_reward(cmd_result, thermal_alarms, power_alarms)
+
+        # 4b. Scenario-specific reward
+        scenario_result: ScenarioResult | None = None
+        if self._scenario:
+            scenario_result = self._scenario.evaluate_step(
+                self._thermal_sim, self._power_sim,
+                action.command, self._action_history,
+                self._state.step_count,
+            )
+            reward += scenario_result.scenario_reward + scenario_result.procedure_reward
+
         self._cumulative_reward += reward
 
         # 5. Check termination
         self._check_termination(thermal_alarms, power_alarms)
+
+        # 5b. Scenario resolution
+        if scenario_result and scenario_result.resolved and not self._done:
+            self._done = True
+            # Speed bonus: fraction of budget remaining
+            speed_bonus = (self._step_budget - self._state.step_count) / self._step_budget
+            reward += speed_bonus
+            self._cumulative_reward += speed_bonus
+            if scenario_result.resolution_message:
+                self._alert = scenario_result.resolution_message
 
         return self._make_observation(
             action_result=cmd_result.message,
@@ -446,9 +515,21 @@ class DcOpsEnvironment(Environment):
                     "efficiency": ups.efficiency,
                 }
 
+        if self._scenario:
+            metadata["scenario"] = {
+                "id": self._scenario.scenario_id,
+                "name": self._scenario.name,
+                "difficulty": self._scenario.difficulty,
+            }
+
+        # Use scenario-specific actions if defined, otherwise all actions
+        actions = AVAILABLE_ACTIONS
+        if self._scenario and self._scenario.available_actions is not None:
+            actions = self._scenario.available_actions
+
         return DcOpsObservation(
             dashboard=dashboard,
-            available_actions=AVAILABLE_ACTIONS,
+            available_actions=actions,
             alert=self._alert,
             scenario_type=self._scenario_type,
             steps_remaining=steps_remaining,
