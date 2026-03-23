@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-"""Dc Ops Env Environment Client."""
+"""DC-Ops Environment Client."""
 
 from typing import Dict
 
@@ -19,59 +19,37 @@ class DcOpsEnv(
     EnvClient[DcOpsAction, DcOpsObservation, State]
 ):
     """
-    Client for the Dc Ops Env Environment.
+    Client for the DC-Ops Environment.
 
-    This client maintains a persistent WebSocket connection to the environment server,
-    enabling efficient multi-step interactions with lower latency.
-    Each client instance has its own dedicated environment session on the server.
+    Connects to the environment server over WebSocket and provides
+    reset/step/state methods for interacting with the datacenter simulation.
 
     Example:
-        >>> # Connect to a running server
-        >>> with DcOpsEnv(base_url="http://localhost:8000") as client:
-        ...     result = client.reset()
-        ...     print(result.observation.echoed_message)
+        >>> async with DcOpsEnv(base_url="http://localhost:8000") as client:
+        ...     result = await client.reset()
+        ...     print(result.observation.dashboard)
         ...
-        ...     result = client.step(DcOpsAction(message="Hello!"))
-        ...     print(result.observation.echoed_message)
-
-    Example with Docker:
-        >>> # Automatically start container and connect
-        >>> client = DcOpsEnv.from_docker_image("dc_ops_env-env:latest")
-        >>> try:
-        ...     result = client.reset()
-        ...     result = client.step(DcOpsAction(message="Test"))
-        ... finally:
-        ...     client.close()
+        ...     result = await client.step(DcOpsAction(command="diagnose CRAC-1"))
+        ...     print(result.observation.dashboard)
     """
 
     def _step_payload(self, action: DcOpsAction) -> Dict:
-        """
-        Convert DcOpsAction to JSON payload for step message.
-
-        Args:
-            action: DcOpsAction instance
-
-        Returns:
-            Dictionary representation suitable for JSON encoding
-        """
-        return {
-            "message": action.message,
-        }
+        """Convert DcOpsAction to JSON payload for step message."""
+        payload = {"command": action.command}
+        if action.reasoning:
+            payload["reasoning"] = action.reasoning
+        return payload
 
     def _parse_result(self, payload: Dict) -> StepResult[DcOpsObservation]:
-        """
-        Parse server response into StepResult[DcOpsObservation].
-
-        Args:
-            payload: JSON response data from server
-
-        Returns:
-            StepResult with DcOpsObservation
-        """
+        """Parse server response into StepResult[DcOpsObservation]."""
         obs_data = payload.get("observation", {})
         observation = DcOpsObservation(
-            echoed_message=obs_data.get("echoed_message", ""),
-            message_length=obs_data.get("message_length", 0),
+            dashboard=obs_data.get("dashboard", ""),
+            available_actions=obs_data.get("available_actions", []),
+            alert=obs_data.get("alert", ""),
+            scenario_type=obs_data.get("scenario_type", ""),
+            steps_remaining=obs_data.get("steps_remaining", 0),
+            action_result=obs_data.get("action_result", ""),
             done=payload.get("done", False),
             reward=payload.get("reward"),
             metadata=obs_data.get("metadata", {}),
@@ -84,15 +62,7 @@ class DcOpsEnv(
         )
 
     def _parse_state(self, payload: Dict) -> State:
-        """
-        Parse server response into State object.
-
-        Args:
-            payload: JSON response from state request
-
-        Returns:
-            State object with episode_id and step_count
-        """
+        """Parse server response into State object."""
         return State(
             episode_id=payload.get("episode_id"),
             step_count=payload.get("step_count", 0),

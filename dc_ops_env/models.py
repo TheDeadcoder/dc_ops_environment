@@ -5,23 +5,79 @@
 # LICENSE file in the root directory of this source tree.
 
 """
-Data models for the Dc Ops Env Environment.
+Pydantic models for the DC-Ops Environment.
 
-The dc_ops_env environment is a simple test environment that echoes back messages.
+Action: Natural-language operator commands (e.g., "adjust_setpoint CRAC-1 20").
+Observation: Text dashboard + structured metadata for the LLM agent.
+
+These use OpenEnv's Action/Observation base classes which enforce
+`extra="forbid"` — only declared fields are allowed.
 """
+
+from __future__ import annotations
+
+from typing import Any, Dict, List
 
 from openenv.core.env_server.types import Action, Observation
 from pydantic import Field
 
 
 class DcOpsAction(Action):
-    """Action for the Dc Ops Env environment - just a message to echo."""
+    """Operator command issued by the LLM agent.
 
-    message: str = Field(..., description="Message to echo back")
+    The agent reads the dashboard observation and responds with a command string.
+    Commands follow the format: `command_name [target] [value]`
+
+    Examples:
+        - "diagnose CRAC-3"
+        - "adjust_setpoint CRAC-1 20"
+        - "increase_fan_speed CRAC-2 80"
+        - "start_generator"
+        - "acknowledge_alarm"
+        - "escalate"
+    """
+
+    command: str = Field(
+        ...,
+        description="Operator command (e.g., 'diagnose CRAC-3', 'adjust_setpoint CRAC-1 20')",
+    )
+    reasoning: str = Field(
+        default="",
+        description="Optional chain-of-thought reasoning from the agent",
+    )
 
 
 class DcOpsObservation(Observation):
-    """Observation from the Dc Ops Env environment - the echoed message."""
+    """Text-based monitoring dashboard observation.
 
-    echoed_message: str = Field(default="", description="The echoed message")
-    message_length: int = Field(default=0, description="Length of the echoed message")
+    The 'dashboard' field contains the full text rendering of the current
+    datacenter state — formatted like a real operator's monitoring screen.
+    This is the primary field the LLM agent reads.
+
+    Structured data is available in the inherited 'metadata' dict.
+    """
+
+    dashboard: str = Field(
+        default="",
+        description="Text-rendered monitoring dashboard",
+    )
+    available_actions: List[str] = Field(
+        default_factory=list,
+        description="Valid commands the agent can issue",
+    )
+    alert: str = Field(
+        default="",
+        description="Current active alert message, if any",
+    )
+    scenario_type: str = Field(
+        default="",
+        description="Type of scenario (thermal, power, network, incident)",
+    )
+    steps_remaining: int = Field(
+        default=0,
+        description="Steps left in episode budget",
+    )
+    action_result: str = Field(
+        default="",
+        description="Feedback from the last action (success/error message)",
+    )

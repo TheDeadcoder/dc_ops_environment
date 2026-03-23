@@ -40,6 +40,37 @@ class CRACFaultType(Enum):
     ELECTRICAL = "electrical"
 
 
+# ---------------------------------------------------------------------------
+# Power subsystem enums
+# ---------------------------------------------------------------------------
+class UPSMode(Enum):
+    """UPS operating mode."""
+    DOUBLE_CONVERSION = "double_conversion"  # Normal: AC→DC→AC, full protection
+    LINE_INTERACTIVE = "line_interactive"     # Reduced losses, slower transfer
+    ECO = "eco"                              # Bypass with monitoring, minimal losses
+    BYPASS = "bypass"                        # Manual bypass, no protection
+    ON_BATTERY = "on_battery"               # Utility lost, discharging battery
+    FAULT = "fault"                          # UPS fault, load on raw utility or dead
+
+
+class GeneratorState(Enum):
+    """Diesel generator state machine states."""
+    OFF = "off"                  # Not running
+    START_DELAY = "start_delay"  # Programmed delay before cranking
+    CRANKING = "cranking"        # Engine cranking
+    WARMING = "warming"          # Warm-up period before load acceptance
+    READY = "ready"              # Running, ready to accept load
+    LOADED = "loaded"            # Running under load
+    COOLDOWN = "cooldown"        # Unloaded cool-down before shutdown
+
+
+class ATSPosition(Enum):
+    """ATS switch position."""
+    UTILITY = "utility"
+    GENERATOR = "generator"
+    TRANSFERRING = "transferring"  # Mid-transfer (load momentarily interrupted)
+
+
 @dataclass
 class RackState:
     """Runtime state of a single server rack."""
@@ -259,10 +290,263 @@ class ZoneState:
         return c_air + c_equipment
 
 
+# ---------------------------------------------------------------------------
+# Power subsystem state
+# ---------------------------------------------------------------------------
+@dataclass
+class UPSState:
+    """Runtime state of a UPS unit."""
+    unit_id: str
+
+    # Operating mode
+    mode: UPSMode = UPSMode.DOUBLE_CONVERSION
+
+    # Load
+    input_power_kw: float = 0.0       # Power entering UPS from utility/generator
+    output_power_kw: float = 0.0      # Power delivered to IT load
+    load_fraction: float = 0.0        # output / rated_capacity (0-1)
+
+    # Efficiency and losses
+    efficiency: float = 0.97          # Current operating efficiency
+    heat_output_kw: float = 0.0       # Waste heat = input - output
+
+    # Battery
+    battery_soc: float = 1.0          # State of charge (0-1)
+    battery_power_kw: float = 0.0     # Positive = discharging, negative = charging
+    battery_time_remaining_s: float = 0.0  # Estimated time at current draw
+
+    # Rated specs (from config, immutable during episode)
+    rated_capacity_kw: float = 500.0
+    loss_c0: float = 0.013
+    loss_c1: float = 0.006
+    loss_c2: float = 0.011
+    battery_capacity_kwh: float = 8.3
+    battery_discharge_efficiency: float = 0.90
+    battery_aging_factor: float = 0.85
+    recharge_rate_kw: float = 5.0
+
+    def compute_efficiency(self) -> float:
+        """UPS efficiency using quadratic loss model.
+
+        η(x) = x / (x + c_0 + c_1·x + c_2·x²)
+        where x = load_fraction.
+
+        At very low loads (x < 0.01), efficiency is undefined / near-zero.
+        """
+        x = self.load_fraction
+        if x < 0.01:
+            return 0.0
+        denominator = x + self.loss_c0 + self.loss_c1 * x + self.loss_c2 * x * x
+        if denominator <= 0:
+            return 0.0
+        return x / denominator
+
+    def compute_losses_kw(self) -> float:
+        """Power losses at current load.
+
+        P_loss = P_output × (1/η - 1)
+        """
+        eta = self.compute_efficiency()
+        if eta <= 0:
+            # No-load losses: just transformer/control board idle draw
+            return self.rated_capacity_kw * self.loss_c0
+        return self.output_power_kw * (1.0 / eta - 1.0)
+
+    def compute_battery_time_remaining_s(self) -> float:
+        """Estimate remaining battery runtime at current discharge rate.
+
+        t = (SOC × E_battery × η_discharge × aging) / P_discharge
+        """
+        if self.battery_power_kw <= 0:
+            return float("inf")
+        usable_kwh = (
+            self.battery_soc
+            * self.battery_capacity_kwh
+            * self.battery_discharge_efficiency
+            * self.battery_aging_factor
+        )
+        return usable_kwh / self.battery_power_kw * 3600.0  # hours → seconds
+
+
+@dataclass
+class PDUState:
+    """Runtime state of a three-phase PDU."""
+    pdu_id: str
+
+    # Per-phase currents [A]
+    phase_currents_a: list[float] = field(default_factory=lambda: [0.0, 0.0, 0.0])
+
+    # Power
+    input_power_kw: float = 0.0
+    output_power_kw: float = 0.0
+    heat_output_kw: float = 0.0       # Transformer losses
+
+    # Utilization
+    load_fraction: float = 0.0        # Of derated capacity
+    phase_imbalance_pct: float = 0.0  # Max deviation from average phase current
+
+    # Alarms
+    breaker_tripped: bool = False
+    overload: bool = False
+
+    # Rated specs (from config)
+    voltage_ll_v: float = 208.0
+    max_current_per_phase_a: float = 24.0
+    num_phases: int = 3
+    breaker_rating_a: float = 20.0
+    efficiency: float = 0.98
+    continuous_derating: float = 0.80
+
+    @property
+    def nameplate_capacity_kw(self) -> float:
+        """Total nameplate capacity: P = √3 × V_LL × I_phase × num_phases_factor."""
+        import math
+        return math.sqrt(3) * self.voltage_ll_v * self.max_current_per_phase_a / 1000.0
+
+    @property
+    def derated_capacity_kw(self) -> float:
+        """NEC 80% continuous derating applied."""
+        return self.nameplate_capacity_kw * self.continuous_derating
+
+    def compute_phase_imbalance(self) -> float:
+        """Phase imbalance as percentage deviation from average.
+
+        imbalance = max(|I_phase - I_avg|) / I_avg × 100
+        Returns 0 if no load.
+        """
+        if not self.phase_currents_a:
+            return 0.0
+        avg = sum(self.phase_currents_a) / len(self.phase_currents_a)
+        if avg <= 0:
+            return 0.0
+        max_dev = max(abs(i - avg) for i in self.phase_currents_a)
+        return max_dev / avg * 100.0
+
+    def compute_heat_output_kw(self) -> float:
+        """PDU transformer losses."""
+        return self.input_power_kw * (1.0 - self.efficiency)
+
+
+@dataclass
+class GensetState:
+    """Runtime state of a diesel standby generator."""
+    gen_id: str
+
+    # State machine
+    state: GeneratorState = GeneratorState.OFF
+    state_elapsed_s: float = 0.0      # Time in current state
+
+    # Output
+    output_power_kw: float = 0.0
+    load_fraction: float = 0.0        # output / rated_capacity
+
+    # Fuel
+    fuel_level_liters: float = 2000.0
+    fuel_consumption_lph: float = 0.0  # Current consumption rate
+
+    # Timing specs (from config)
+    rated_capacity_kw: float = 750.0
+    start_delay_s: float = 4.0
+    crank_time_s: float = 5.0
+    warmup_time_s: float = 8.0
+    cooldown_time_s: float = 300.0
+    fuel_tank_liters: float = 2000.0
+    consumption_lph_full: float = 180.0
+
+    @property
+    def is_available(self) -> bool:
+        """Generator is ready to accept load."""
+        return self.state in (GeneratorState.READY, GeneratorState.LOADED)
+
+    @property
+    def fuel_remaining_hours(self) -> float:
+        """Estimated hours of fuel at current consumption rate."""
+        if self.fuel_consumption_lph <= 0:
+            return float("inf")
+        return self.fuel_level_liters / self.fuel_consumption_lph
+
+    def compute_fuel_consumption_lph(self) -> float:
+        """Fuel consumption scales roughly linearly with load.
+
+        Includes ~10% idle consumption when running unloaded.
+        """
+        if self.state == GeneratorState.OFF:
+            return 0.0
+        if self.state in (GeneratorState.CRANKING, GeneratorState.START_DELAY):
+            return 0.0  # Not yet burning fuel
+        # Idle + proportional: consumption = full × (0.1 + 0.9 × load_fraction)
+        return self.consumption_lph_full * (0.1 + 0.9 * self.load_fraction)
+
+
+@dataclass
+class ATSState:
+    """Runtime state of an Automatic Transfer Switch."""
+    ats_id: str
+
+    position: ATSPosition = ATSPosition.UTILITY
+    transfer_elapsed_ms: float = 0.0   # Progress through transfer
+
+    # Specs (from config)
+    transfer_time_ms: float = 100.0
+    retransfer_delay_s: float = 300.0
+
+    # Timer for retransfer delay (counts up when utility is restored)
+    retransfer_timer_s: float = 0.0
+
+    @property
+    def load_powered(self) -> bool:
+        """Whether the load side has power (False only during transfer gap)."""
+        return self.position != ATSPosition.TRANSFERRING
+
+
+@dataclass
+class PowerState:
+    """Aggregated power subsystem state."""
+    ups_units: list[UPSState] = field(default_factory=list)
+    pdus: list[PDUState] = field(default_factory=list)
+    generator: GensetState = field(default_factory=lambda: GensetState(gen_id="GEN-1"))
+    ats: ATSState = field(default_factory=lambda: ATSState(ats_id="ATS-1"))
+
+    # Utility
+    utility_available: bool = True
+    utility_voltage_v: float = 480.0
+
+    @property
+    def total_ups_loss_kw(self) -> float:
+        return sum(u.heat_output_kw for u in self.ups_units)
+
+    @property
+    def total_pdu_loss_kw(self) -> float:
+        return sum(p.heat_output_kw for p in self.pdus)
+
+    @property
+    def total_power_overhead_kw(self) -> float:
+        """Total electrical overhead from power distribution."""
+        return self.total_ups_loss_kw + self.total_pdu_loss_kw
+
+    @property
+    def on_generator(self) -> bool:
+        return self.ats.position == ATSPosition.GENERATOR
+
+    @property
+    def power_available(self) -> bool:
+        """Whether load-side power is available (from any source)."""
+        if not self.ats.load_powered:
+            return False
+        if self.ats.position == ATSPosition.UTILITY:
+            return self.utility_available
+        if self.ats.position == ATSPosition.GENERATOR:
+            return self.generator.is_available
+        return False
+
+
 @dataclass
 class DatacenterState:
     """Top-level simulation state aggregating all subsystems."""
     zones: list[ZoneState] = field(default_factory=list)
+
+    # Power subsystem (None = use stub loss fractions for backward compat)
+    power: PowerState | None = None
 
     # Environment
     outside_temp_c: float = 35.0
@@ -272,6 +556,7 @@ class DatacenterState:
     lighting_power_kw: float = 5.0       # Total lighting load
 
     # Power distribution stub losses (fractions of IT load)
+    # Used only when power subsystem is not initialized
     ups_loss_fraction: float = 0.05
     pdu_loss_fraction: float = 0.02
 
@@ -295,14 +580,19 @@ class DatacenterState:
     def pue(self) -> float:
         """Dynamic PUE = Total Facility Power / IT Power.
 
-        Total = P_IT + P_cooling + P_UPS_loss + P_PDU_loss + P_lighting
+        When power subsystem is active, uses real UPS/PDU losses.
+        Otherwise falls back to stub loss fractions.
         """
         p_it = self.total_it_load_kw
         if p_it <= 0:
             return 1.0
 
         p_cooling = self.total_cooling_power_kw
-        p_ups_loss = p_it * self.ups_loss_fraction
-        p_pdu_loss = p_it * self.pdu_loss_fraction
-        p_total = p_it + p_cooling + p_ups_loss + p_pdu_loss + self.lighting_power_kw
+
+        if self.power is not None:
+            p_distribution_loss = self.power.total_power_overhead_kw
+        else:
+            p_distribution_loss = p_it * (self.ups_loss_fraction + self.pdu_loss_fraction)
+
+        p_total = p_it + p_cooling + p_distribution_loss + self.lighting_power_kw
         return p_total / p_it

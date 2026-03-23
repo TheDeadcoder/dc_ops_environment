@@ -198,23 +198,125 @@ class ZoneConfig:
     ashrae_class: str = "A2"
 
 
+# ---------------------------------------------------------------------------
+# Power distribution configuration
+# ---------------------------------------------------------------------------
+@dataclass
+class UPSConfig:
+    """Configuration for a UPS unit.
+
+    Efficiency model (quadratic loss):
+        η(x) = x / (x + c_0 + c_1·x + c_2·x²)
+    where x = load_fraction (0 to 1).
+
+    Default coefficients from APC White Paper 108 (modern double-conversion):
+        c_0 = 0.013  (no-load: transformers, logic boards)
+        c_1 = 0.006  (proportional: conduction losses)
+        c_2 = 0.011  (square-law: I²R in conductors)
+    """
+    unit_id: str = "UPS-1"
+    rated_capacity_kw: float = 500.0
+    # Quadratic loss coefficients (fractions of rated capacity)
+    loss_c0: float = 0.013                 # No-load losses
+    loss_c1: float = 0.006                 # Proportional losses
+    loss_c2: float = 0.011                 # Square-law losses
+    # Battery
+    battery_capacity_kwh: float = 8.3      # ~10 min at full load
+    battery_discharge_efficiency: float = 0.90
+    battery_aging_factor: float = 0.85     # End-of-life derating
+    battery_temp_c: float = 25.0           # Battery room temperature
+    # Recharge: ~10× discharge time
+    recharge_rate_kw: float = 5.0          # Max recharge rate
+    # Operating mode
+    initial_mode: str = "double_conversion"  # "double_conversion", "line_interactive", "eco", "bypass"
+
+
+@dataclass
+class PDUConfig:
+    """Configuration for a three-phase PDU.
+
+    US standard: 208V L-L / 120V L-N, 24A per phase.
+    Total nameplate: √3 × 208 × 24 ≈ 8,646 W.
+    80% NEC continuous derating: 6,917 W.
+
+    European: 400V L-L / 230V L-N, 32A per phase.
+    Total nameplate: √3 × 400 × 32 ≈ 22,170 W.
+    """
+    pdu_id: str = "PDU-A1"
+    voltage_ll_v: float = 208.0            # Line-to-line voltage
+    max_current_per_phase_a: float = 24.0
+    num_phases: int = 3
+    breaker_rating_a: float = 20.0         # Per-branch circuit breaker
+    num_outlets: int = 48
+    efficiency: float = 0.98               # Transformer efficiency (2% losses)
+    continuous_derating: float = 0.80      # NEC 80% rule for continuous loads
+
+
+@dataclass
+class GeneratorConfig:
+    """Configuration for a diesel standby generator.
+
+    Startup sequence (NFPA 110 Type 10):
+        Start delay → cranking → warm-up → ready to accept load
+        Total: 10-20 seconds
+    """
+    gen_id: str = "GEN-1"
+    rated_capacity_kw: float = 750.0
+    # Startup timing
+    start_delay_s: float = 4.0             # Programmed delay before crank
+    crank_time_s: float = 5.0              # Engine cranking duration
+    warmup_time_s: float = 8.0             # Warm-up before load acceptance
+    # Fuel
+    fuel_tank_liters: float = 2000.0
+    consumption_lph_full: float = 180.0    # Liters/hour at full load
+    # Cool-down
+    cooldown_time_s: float = 300.0         # 5-min unloaded cool-down
+
+
+@dataclass
+class ATSConfig:
+    """Configuration for an Automatic Transfer Switch."""
+    ats_id: str = "ATS-1"
+    transfer_time_ms: float = 100.0        # Mechanical transfer time
+    retransfer_delay_s: float = 300.0      # Wait before transferring back to utility
+
+
+@dataclass
+class PowerConfig:
+    """Aggregated power infrastructure configuration."""
+    ups_units: list[UPSConfig] = field(default_factory=list)
+    pdus: list[PDUConfig] = field(default_factory=list)
+    generator: GeneratorConfig = field(default_factory=GeneratorConfig)
+    ats: ATSConfig = field(default_factory=ATSConfig)
+    utility_voltage_v: float = 480.0       # Main utility feed voltage
+    utility_available: bool = True
+
+
 @dataclass
 class DatacenterConfig:
     """Full datacenter configuration."""
     name: str = "DC-OPS Facility"
     zones: list[ZoneConfig] = field(default_factory=list)
+    power: PowerConfig = field(default_factory=PowerConfig)
     outside_temp_c: float = 35.0
     outside_humidity_rh: float = 0.40
     lighting_w_per_m2: float = 10.0         # Typical 10 W/m²
     floor_area_m2: float = 500.0
     simulation_dt_s: float = 1.0            # Integration timestep
-    # Power distribution losses (used by Phase 2; stub values here)
-    ups_loss_fraction: float = 0.05         # 5% UPS losses as fraction of IT load
-    pdu_loss_fraction: float = 0.02         # 2% PDU losses as fraction of IT load
+    # Kept for backward compatibility with Phase 1 thermal sim
+    ups_loss_fraction: float = 0.05
+    pdu_loss_fraction: float = 0.02
 
 
 def make_default_datacenter_config() -> DatacenterConfig:
-    """Create a realistic default datacenter: 2 zones, 10 racks each, 4 CRACs total."""
+    """Create a realistic default datacenter: 2 zones, 10 racks each, 4 CRACs total.
+
+    Power infrastructure:
+      - 2× UPS (N+1 redundant, 500 kW each for 160 kW total IT load)
+      - 20× PDUs (one per rack, US 3-phase 208V/24A)
+      - 1× diesel generator (750 kW)
+      - 1× ATS
+    """
     zone_a_racks = [
         RackConfig(rack_id=f"A-{i:02d}", row="A", position=i, it_load_kw=8.0)
         for i in range(1, 11)
@@ -233,6 +335,22 @@ def make_default_datacenter_config() -> DatacenterConfig:
         CRACConfig(unit_id="CRAC-4"),
     ]
 
+    # Power infrastructure
+    ups_units = [
+        UPSConfig(unit_id="UPS-1", rated_capacity_kw=500.0),
+        UPSConfig(unit_id="UPS-2", rated_capacity_kw=500.0),
+    ]
+    pdus = [
+        PDUConfig(pdu_id=f"PDU-{rack.rack_id}")
+        for rack in zone_a_racks + zone_b_racks
+    ]
+    power = PowerConfig(
+        ups_units=ups_units,
+        pdus=pdus,
+        generator=GeneratorConfig(gen_id="GEN-1", rated_capacity_kw=750.0),
+        ats=ATSConfig(ats_id="ATS-1"),
+    )
+
     return DatacenterConfig(
         name="DC-OPS Default Facility",
         zones=[
@@ -249,6 +367,7 @@ def make_default_datacenter_config() -> DatacenterConfig:
                 air_volume_m3=600.0,
             ),
         ],
+        power=power,
         outside_temp_c=35.0,
         outside_humidity_rh=0.40,
         floor_area_m2=1200.0,
