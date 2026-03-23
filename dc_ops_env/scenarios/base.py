@@ -47,11 +47,22 @@ class ProcedureRule:
 
 @dataclass
 class ScenarioResult:
-    """Outcome of checking scenario state after a step."""
+    """Outcome of checking scenario state after a step.
+
+    Attributes:
+        resolved: True if the incident is successfully resolved.
+        resolution_message: Human-readable message on resolution.
+        scenario_reward: Legacy scenario-specific reward (kept for compat).
+        procedure_reward: Procedural correctness reward from check_procedure().
+        progress: Normalized [0, 1] progress toward resolution.
+            Used by the delta-based reward function for credit assignment.
+        info: Additional scenario-specific data for logging.
+    """
     resolved: bool = False
     resolution_message: str = ""
     scenario_reward: float = 0.0
     procedure_reward: float = 0.0
+    progress: float = 0.0
     info: dict[str, Any] = field(default_factory=dict)
 
 

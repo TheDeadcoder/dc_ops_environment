@@ -97,11 +97,19 @@ class UPSAlarmResponse(Scenario):
 
         procedure_reward = self.check_procedure(action_command, action_history)
 
+        # Progress: 50% for diagnose, 50% for acknowledge
+        progress = 0.0
+        if self._diagnosed_ups:
+            progress += 0.5
+        if self._acknowledged:
+            progress += 0.5
+
         return ScenarioResult(
             resolved=resolved,
             resolution_message="UPS alarm properly investigated and acknowledged." if resolved else "",
             scenario_reward=scenario_reward,
             procedure_reward=procedure_reward,
+            progress=progress,
             info={
                 "diagnosed_ups": self._diagnosed_ups,
                 "acknowledged": self._acknowledged,
@@ -227,11 +235,23 @@ class GeneratorTestProtocol(Scenario):
 
         procedure_reward = self.check_procedure(action_command, action_history)
 
+        # Progress: 25% per protocol step
+        progress = 0.0
+        if self._started:
+            progress += 0.25
+        if self._verified:
+            progress += 0.25
+        if self._stopped:
+            progress += 0.25
+        if self._completed:
+            progress += 0.25
+
         return ScenarioResult(
             resolved=resolved,
             resolution_message="Generator test protocol completed successfully." if resolved else "",
             scenario_reward=scenario_reward,
             procedure_reward=procedure_reward,
+            progress=progress,
             info={
                 "started": self._started,
                 "verified": self._verified,
@@ -389,11 +409,19 @@ class PowerFailureCascade(Scenario):
 
         procedure_reward = self.check_procedure(action_command, action_history)
 
+        # Progress: partial credit per condition, full credit for stability
+        conditions_met = sum([gen_loaded, all_within_allowable, battery_ok])
+        if conditions_met == 3:
+            progress = 0.5 + 0.5 * min(1.0, self._stable_count / self._CONSECUTIVE_STABLE_STEPS)
+        else:
+            progress = (conditions_met / 3.0) * 0.5
+
         return ScenarioResult(
             resolved=resolved,
             resolution_message="Power failure resolved. Generator online, temps stable." if resolved else "",
             scenario_reward=scenario_reward,
             procedure_reward=procedure_reward,
+            progress=progress,
             info={
                 "max_overshoot_c": max_over,
                 "gen_loaded": gen_loaded,

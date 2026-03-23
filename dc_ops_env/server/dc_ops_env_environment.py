@@ -13,7 +13,7 @@ Each step:
   2. Apply mutations to simulation state
   3. Advance simulation by game-time dt (default 60s)
   4. Render dashboard observation
-  5. Compute reward
+  5. Compute reward (via multi-objective RewardFunction)
   6. Check termination conditions
 """
 
@@ -39,6 +39,7 @@ try:
     from ..simulation.power import PowerAlarm, PowerSimulation
     from ..scenarios.base import Scenario, ScenarioResult
     from ..scenarios.registry import get_scenario, random_scenario
+    from ..rewards.reward_function import RewardFunction
 except ImportError:
     from config import (
         ASHRAE_CLASSES,
@@ -53,6 +54,7 @@ except ImportError:
     from simulation.power import PowerAlarm, PowerSimulation
     from scenarios.base import Scenario, ScenarioResult
     from scenarios.registry import get_scenario, random_scenario
+    from rewards.reward_function import RewardFunction
 
 
 # Default episode configuration
@@ -82,6 +84,7 @@ class DcOpsEnvironment(Environment):
         self._power_sim: PowerSimulation | None = None
         self._config: DatacenterConfig | None = None
         self._scenario: Scenario | None = None
+        self._reward_fn: RewardFunction | None = None
         self._step_budget: int = DEFAULT_STEP_BUDGET
         self._game_time_per_step_s: float = DEFAULT_GAME_TIME_PER_STEP_S
         self._sim_dt_s: float = DEFAULT_SIM_DT_S
@@ -158,6 +161,9 @@ class DcOpsEnvironment(Environment):
 
         self._sim_dt_s = self._config.simulation_dt_s
 
+        # Initialize reward function with scenario-type-aware weights
+        self._reward_fn = RewardFunction(scenario_type=self._scenario_type)
+
         # Initialize simulations
         self._thermal_sim = ThermalSimulation(self._config)
 
@@ -195,7 +201,7 @@ class DcOpsEnvironment(Environment):
         1. Parse and execute the command
         2. Advance simulation by game_time_per_step_s
         3. Check for alarms and termination
-        4. Compute reward
+        4. Compute reward via RewardFunction
         5. Return observation
         """
         if self._done:
@@ -214,22 +220,29 @@ class DcOpsEnvironment(Environment):
             self._power_sim,
         )
 
-        # Handle special commands
+        # Handle escalation
         if cmd_result.command_name == "escalate":
             self._escalated = True
             self._done = True
-            # Scenario may penalize escalation differently
-            escalate_penalty = -0.5
+            # Evaluate scenario for procedure penalties
+            scenario_result: ScenarioResult | None = None
             if self._scenario:
-                sr = self._scenario.evaluate_step(
+                scenario_result = self._scenario.evaluate_step(
                     self._thermal_sim, self._power_sim,
                     action.command, self._action_history,
                     self._state.step_count,
                 )
-                escalate_penalty = sr.procedure_reward + sr.scenario_reward - 0.5
+            # Compute base reward components
+            components = self._reward_fn.compute(
+                self._thermal_sim, self._power_sim, cmd_result,
+                action.command, self._action_history, scenario_result,
+            )
+            # Escalation penalty on top of base reward
+            reward = components.total - 0.3
+            self._cumulative_reward += reward
             return self._make_observation(
                 action_result=cmd_result.message,
-                reward=escalate_penalty,
+                reward=reward,
             )
 
         # 2. Advance simulation
@@ -238,25 +251,28 @@ class DcOpsEnvironment(Environment):
         # 3. Build alert from alarms
         self._update_alert(thermal_alarms, power_alarms)
 
-        # 4. Compute reward
-        reward = self._compute_reward(cmd_result, thermal_alarms, power_alarms)
-
-        # 4b. Scenario-specific reward
-        scenario_result: ScenarioResult | None = None
+        # 4. Evaluate scenario (before reward, so progress is available)
+        scenario_result = None
         if self._scenario:
             scenario_result = self._scenario.evaluate_step(
                 self._thermal_sim, self._power_sim,
                 action.command, self._action_history,
                 self._state.step_count,
             )
-            reward += scenario_result.scenario_reward + scenario_result.procedure_reward
+
+        # 5. Compute reward via RewardFunction
+        components = self._reward_fn.compute(
+            self._thermal_sim, self._power_sim, cmd_result,
+            action.command, self._action_history, scenario_result,
+        )
+        reward = components.total
 
         self._cumulative_reward += reward
 
-        # 5. Check termination
+        # 6. Check termination
         self._check_termination(thermal_alarms, power_alarms)
 
-        # 5b. Scenario resolution
+        # 6b. Scenario resolution
         if scenario_result and scenario_result.resolved and not self._done:
             self._done = True
             # Speed bonus: fraction of budget remaining
@@ -340,55 +356,6 @@ class DcOpsEnvironment(Environment):
                 self._alert = warnings[0]
             else:
                 self._alert = ""
-
-    def _compute_reward(
-        self,
-        cmd_result: CommandResult,
-        thermal_alarms: list[ThermalAlarm],
-        power_alarms: list[PowerAlarm],
-    ) -> float:
-        """Compute step reward.
-
-        Components:
-          R_safety: Penalty for ASHRAE violations (-10 × normalized overshoot)
-          R_energy: Penalty for high PUE (-(PUE - 1.0))
-          R_action: Small bonus for valid actions, penalty for invalid
-        """
-        r_safety = 0.0
-        r_energy = 0.0
-        r_action = 0.0
-
-        # Safety: penalize ASHRAE violations
-        for zone in self._thermal_sim.state.zones:
-            ashrae = ASHRAE_CLASSES.get(zone.ashrae_class)
-            if not ashrae:
-                continue
-            max_inlet = zone.max_inlet_temp_c
-            if max_inlet > ashrae.allowable_max_c:
-                overshoot = max_inlet - ashrae.allowable_max_c
-                r_safety -= 10.0 * overshoot / ashrae.allowable_max_c
-            elif max_inlet > ashrae.recommended_max_c:
-                overshoot = max_inlet - ashrae.recommended_max_c
-                r_safety -= 1.0 * overshoot / ashrae.recommended_max_c
-
-        r_safety = max(r_safety, -10.0)
-
-        # Energy: penalize high PUE
-        pue = self._thermal_sim.state.pue
-        r_energy = -(pue - 1.0)  # PUE 1.5 → -0.5, PUE 2.0 → -1.0
-
-        # Action feedback
-        if cmd_result.success:
-            r_action = 0.1
-        else:
-            r_action = -0.1
-
-        # Weights: safety dominant
-        w_safety = 0.4
-        w_energy = 0.2
-        w_action = 0.4
-
-        return w_safety * r_safety + w_energy * r_energy + w_action * r_action
 
     def _check_termination(
         self,

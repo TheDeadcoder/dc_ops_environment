@@ -88,11 +88,17 @@ class CoolingSetpointOptimization(Scenario):
         resolved = pue < self._PUE_TARGET and all_within_recommended
         procedure_reward = self.check_procedure(action_command, action_history)
 
+        # Progress: PUE improvement toward target + temperature compliance
+        pue_progress = max(0.0, min(1.0, (2.0 - pue) / (2.0 - self._PUE_TARGET)))
+        temp_factor = 1.0 if all_within_recommended else 0.0
+        progress = 0.7 * pue_progress + 0.3 * temp_factor
+
         return ScenarioResult(
             resolved=resolved,
             resolution_message="PUE optimized within target range." if resolved else "",
             scenario_reward=pue_reward * 0.5,
             procedure_reward=procedure_reward,
+            progress=progress,
             info={"pue": pue, "target_pue": self._PUE_TARGET},
         )
 
@@ -203,11 +209,18 @@ class ThermalEventResponse(Scenario):
 
         procedure_reward = self.check_procedure(action_command, action_history)
 
+        # Progress: partial credit for being close, full credit for stability
+        if all_within_recommended:
+            progress = 0.5 + 0.5 * min(1.0, self._stable_count / self._CONSECUTIVE_STABLE_STEPS)
+        else:
+            progress = max(0.0, 0.4 / (1.0 + max_over))
+
         return ScenarioResult(
             resolved=resolved,
             resolution_message="Thermal event stabilized. All zones within recommended range." if resolved else "",
             scenario_reward=scenario_reward,
             procedure_reward=procedure_reward,
+            progress=progress,
             info={"max_overshoot_c": max_over, "stable_count": self._stable_count},
         )
 
@@ -345,11 +358,18 @@ class CRACFailureCascade(Scenario):
         if "CRAC-1" in diagnosed_units and "CRAC-3" in diagnosed_units:
             procedure_reward += 0.2  # Bonus for thorough diagnosis
 
+        # Progress: partial credit for being close, full credit for stability
+        if all_within_allowable:
+            progress = 0.5 + 0.5 * min(1.0, self._stable_count / self._CONSECUTIVE_STABLE_STEPS)
+        else:
+            progress = max(0.0, 0.4 / (1.0 + max_over))
+
         return ScenarioResult(
             resolved=resolved,
             resolution_message="CRAC cascade stabilized. Temps within allowable range." if resolved else "",
             scenario_reward=scenario_reward,
             procedure_reward=procedure_reward,
+            progress=progress,
             info={
                 "max_overshoot_c": max_over,
                 "stable_count": self._stable_count,
