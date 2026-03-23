@@ -1,0 +1,157 @@
+# Large Facility Configuration
+# 4 zones, 80 racks (20/zone), 640 kW total IT load
+# N+1 cooling (8 CRACs × 100 kW for 640 kW IT)
+# 2N power (4 UPS × 500 kW, 2 generators × 750 kW)
+# Mixed ASHRAE classes: A2 standard + H1 high-density
+# Use case: enterprise datacenter with GPU/HPC section
+
+name: "DC-OPS Large Facility"
+
+outside_temp_c: 35.0
+outside_humidity_rh: 0.35
+lighting_w_per_m2: 10.0
+floor_area_m2: 4000.0
+simulation_dt_s: 1.0
+
+zones:
+  # Standard-density zones (A2 class, 8 kW/rack)
+  - zone_id: zone_a
+    containment_type: cold_aisle
+    recirculation_factor: 0.06       # Excellent containment
+    air_volume_m3: 800.0
+    envelope_r_kw: 0.015
+    initial_cold_aisle_temp_c: 20.0
+    initial_humidity_rh: 0.45
+    ashrae_class: A2
+    racks:
+      - { rack_id: A-01, row: A, position: 1, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-02, row: A, position: 2, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-03, row: A, position: 3, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-04, row: A, position: 4, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-05, row: A, position: 5, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-06, row: A, position: 6, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-07, row: A, position: 7, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-08, row: A, position: 8, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-09, row: A, position: 9, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-10, row: A, position: 10, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-11, row: A, position: 11, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-12, row: A, position: 12, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-13, row: A, position: 13, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-14, row: A, position: 14, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-15, row: A, position: 15, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-16, row: A, position: 16, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-17, row: A, position: 17, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-18, row: A, position: 18, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-19, row: A, position: 19, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-20, row: A, position: 20, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+    crac_units:
+      - { unit_id: CRAC-1, rated_capacity_kw: 100.0, rated_return_temp_c: 24.0, capacity_slope_per_c: 0.03, max_airflow_cfm: 15000.0, fan_rated_power_kw: 7.0, cop_rated: 3.5, cop_degradation_per_c: 0.04, initial_setpoint_c: 18.0, initial_fan_speed_pct: 100.0, supply_temp_lag_s: 30.0 }
+      - { unit_id: CRAC-2, rated_capacity_kw: 100.0, rated_return_temp_c: 24.0, capacity_slope_per_c: 0.03, max_airflow_cfm: 15000.0, fan_rated_power_kw: 7.0, cop_rated: 3.5, cop_degradation_per_c: 0.04, initial_setpoint_c: 18.0, initial_fan_speed_pct: 100.0, supply_temp_lag_s: 30.0 }
+
+  - zone_id: zone_b
+    containment_type: cold_aisle
+    recirculation_factor: 0.06
+    air_volume_m3: 800.0
+    envelope_r_kw: 0.015
+    initial_cold_aisle_temp_c: 20.0
+    initial_humidity_rh: 0.45
+    ashrae_class: A2
+    racks:
+      - { rack_id: B-01, row: B, position: 1, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-02, row: B, position: 2, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-03, row: B, position: 3, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-04, row: B, position: 4, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-05, row: B, position: 5, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-06, row: B, position: 6, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-07, row: B, position: 7, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-08, row: B, position: 8, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-09, row: B, position: 9, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-10, row: B, position: 10, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-11, row: B, position: 11, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-12, row: B, position: 12, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-13, row: B, position: 13, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-14, row: B, position: 14, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-15, row: B, position: 15, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-16, row: B, position: 16, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-17, row: B, position: 17, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-18, row: B, position: 18, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-19, row: B, position: 19, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-20, row: B, position: 20, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+    crac_units:
+      - { unit_id: CRAC-3, rated_capacity_kw: 100.0, rated_return_temp_c: 24.0, capacity_slope_per_c: 0.03, max_airflow_cfm: 15000.0, fan_rated_power_kw: 7.0, cop_rated: 3.5, cop_degradation_per_c: 0.04, initial_setpoint_c: 18.0, initial_fan_speed_pct: 100.0, supply_temp_lag_s: 30.0 }
+      - { unit_id: CRAC-4, rated_capacity_kw: 100.0, rated_return_temp_c: 24.0, capacity_slope_per_c: 0.03, max_airflow_cfm: 15000.0, fan_rated_power_kw: 7.0, cop_rated: 3.5, cop_degradation_per_c: 0.04, initial_setpoint_c: 18.0, initial_fan_speed_pct: 100.0, supply_temp_lag_s: 30.0 }
+
+  # High-density GPU zone (H1 class, 20 kW/rack)
+  - zone_id: zone_c
+    containment_type: hot_aisle
+    recirculation_factor: 0.05       # Hot aisle containment — tighter
+    air_volume_m3: 800.0
+    envelope_r_kw: 0.015
+    initial_cold_aisle_temp_c: 20.0
+    initial_humidity_rh: 0.45
+    ashrae_class: H1               # High-density class: 18-22°C recommended, 25°C allowable max
+    racks:
+      - { rack_id: C-01, row: C, position: 1, it_load_kw: 20.0, num_servers_2u: 10, server_thermal_mass_jk: 15000.0, airflow_cfm_per_kw: 120.0 }
+      - { rack_id: C-02, row: C, position: 2, it_load_kw: 20.0, num_servers_2u: 10, server_thermal_mass_jk: 15000.0, airflow_cfm_per_kw: 120.0 }
+      - { rack_id: C-03, row: C, position: 3, it_load_kw: 20.0, num_servers_2u: 10, server_thermal_mass_jk: 15000.0, airflow_cfm_per_kw: 120.0 }
+      - { rack_id: C-04, row: C, position: 4, it_load_kw: 20.0, num_servers_2u: 10, server_thermal_mass_jk: 15000.0, airflow_cfm_per_kw: 120.0 }
+      - { rack_id: C-05, row: C, position: 5, it_load_kw: 20.0, num_servers_2u: 10, server_thermal_mass_jk: 15000.0, airflow_cfm_per_kw: 120.0 }
+      - { rack_id: C-06, row: C, position: 6, it_load_kw: 20.0, num_servers_2u: 10, server_thermal_mass_jk: 15000.0, airflow_cfm_per_kw: 120.0 }
+      - { rack_id: C-07, row: C, position: 7, it_load_kw: 20.0, num_servers_2u: 10, server_thermal_mass_jk: 15000.0, airflow_cfm_per_kw: 120.0 }
+      - { rack_id: C-08, row: C, position: 8, it_load_kw: 20.0, num_servers_2u: 10, server_thermal_mass_jk: 15000.0, airflow_cfm_per_kw: 120.0 }
+      - { rack_id: C-09, row: C, position: 9, it_load_kw: 20.0, num_servers_2u: 10, server_thermal_mass_jk: 15000.0, airflow_cfm_per_kw: 120.0 }
+      - { rack_id: C-10, row: C, position: 10, it_load_kw: 20.0, num_servers_2u: 10, server_thermal_mass_jk: 15000.0, airflow_cfm_per_kw: 120.0 }
+    crac_units:
+      - { unit_id: CRAC-5, rated_capacity_kw: 100.0, rated_return_temp_c: 24.0, capacity_slope_per_c: 0.03, max_airflow_cfm: 15000.0, fan_rated_power_kw: 7.0, cop_rated: 3.5, cop_degradation_per_c: 0.04, initial_setpoint_c: 17.0, initial_fan_speed_pct: 100.0, supply_temp_lag_s: 30.0 }
+      - { unit_id: CRAC-6, rated_capacity_kw: 100.0, rated_return_temp_c: 24.0, capacity_slope_per_c: 0.03, max_airflow_cfm: 15000.0, fan_rated_power_kw: 7.0, cop_rated: 3.5, cop_degradation_per_c: 0.04, initial_setpoint_c: 17.0, initial_fan_speed_pct: 100.0, supply_temp_lag_s: 30.0 }
+
+  # Standard-density zone D
+  - zone_id: zone_d
+    containment_type: cold_aisle
+    recirculation_factor: 0.06
+    air_volume_m3: 800.0
+    envelope_r_kw: 0.015
+    initial_cold_aisle_temp_c: 20.0
+    initial_humidity_rh: 0.45
+    ashrae_class: A2
+    racks:
+      - { rack_id: D-01, row: D, position: 1, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: D-02, row: D, position: 2, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: D-03, row: D, position: 3, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: D-04, row: D, position: 4, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: D-05, row: D, position: 5, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: D-06, row: D, position: 6, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: D-07, row: D, position: 7, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: D-08, row: D, position: 8, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: D-09, row: D, position: 9, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: D-10, row: D, position: 10, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+    crac_units:
+      - { unit_id: CRAC-7, rated_capacity_kw: 100.0, rated_return_temp_c: 24.0, capacity_slope_per_c: 0.03, max_airflow_cfm: 15000.0, fan_rated_power_kw: 7.0, cop_rated: 3.5, cop_degradation_per_c: 0.04, initial_setpoint_c: 18.0, initial_fan_speed_pct: 100.0, supply_temp_lag_s: 30.0 }
+      - { unit_id: CRAC-8, rated_capacity_kw: 100.0, rated_return_temp_c: 24.0, capacity_slope_per_c: 0.03, max_airflow_cfm: 15000.0, fan_rated_power_kw: 7.0, cop_rated: 3.5, cop_degradation_per_c: 0.04, initial_setpoint_c: 18.0, initial_fan_speed_pct: 100.0, supply_temp_lag_s: 30.0 }
+
+power:
+  utility_voltage_v: 480.0
+  utility_available: true
+  ups_units:
+    - { unit_id: UPS-1, rated_capacity_kw: 500.0, loss_c0: 0.013, loss_c1: 0.006, loss_c2: 0.011, battery_capacity_kwh: 12.0, battery_discharge_efficiency: 0.90, battery_aging_factor: 0.85, battery_temp_c: 25.0, recharge_rate_kw: 8.0, initial_mode: double_conversion }
+    - { unit_id: UPS-2, rated_capacity_kw: 500.0, loss_c0: 0.013, loss_c1: 0.006, loss_c2: 0.011, battery_capacity_kwh: 12.0, battery_discharge_efficiency: 0.90, battery_aging_factor: 0.85, battery_temp_c: 25.0, recharge_rate_kw: 8.0, initial_mode: double_conversion }
+    - { unit_id: UPS-3, rated_capacity_kw: 500.0, loss_c0: 0.013, loss_c1: 0.006, loss_c2: 0.011, battery_capacity_kwh: 12.0, battery_discharge_efficiency: 0.90, battery_aging_factor: 0.85, battery_temp_c: 25.0, recharge_rate_kw: 8.0, initial_mode: double_conversion }
+    - { unit_id: UPS-4, rated_capacity_kw: 500.0, loss_c0: 0.013, loss_c1: 0.006, loss_c2: 0.011, battery_capacity_kwh: 12.0, battery_discharge_efficiency: 0.90, battery_aging_factor: 0.85, battery_temp_c: 25.0, recharge_rate_kw: 8.0, initial_mode: double_conversion }
+  pdus:
+    - { pdu_id: PDU-A-01, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-B-01, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-C-01, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-D-01, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+  generator:
+    gen_id: GEN-1
+    rated_capacity_kw: 1500.0
+    start_delay_s: 4.0
+    crank_time_s: 5.0
+    warmup_time_s: 8.0
+    fuel_tank_liters: 5000.0
+    consumption_lph_full: 400.0
+    cooldown_time_s: 300.0
+  ats:
+    ats_id: ATS-1
+    transfer_time_ms: 100.0
+    retransfer_delay_s: 300.0

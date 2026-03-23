@@ -1,0 +1,101 @@
+# DC-OPS Default Facility Configuration
+# 2 zones, 20 racks (10/zone), 160 kW total IT load
+# N+1 cooling (4 CRACs × 70 kW for 160 kW IT)
+# N+1 power (2 UPS × 500 kW, 1 generator 750 kW)
+# Location: Phoenix, AZ (hot climate)
+
+name: "DC-OPS Default Facility"
+
+outside_temp_c: 35.0
+outside_humidity_rh: 0.40
+lighting_w_per_m2: 10.0
+floor_area_m2: 1200.0
+simulation_dt_s: 1.0
+
+zones:
+  - zone_id: zone_a
+    containment_type: cold_aisle
+    recirculation_factor: 0.08
+    air_volume_m3: 600.0
+    envelope_r_kw: 0.02
+    initial_cold_aisle_temp_c: 20.0
+    initial_humidity_rh: 0.45
+    ashrae_class: A2
+    racks:
+      - { rack_id: A-01, row: A, position: 1, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-02, row: A, position: 2, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-03, row: A, position: 3, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-04, row: A, position: 4, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-05, row: A, position: 5, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-06, row: A, position: 6, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-07, row: A, position: 7, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-08, row: A, position: 8, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-09, row: A, position: 9, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: A-10, row: A, position: 10, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+    crac_units:
+      - { unit_id: CRAC-1, rated_capacity_kw: 70.0, rated_return_temp_c: 24.0, capacity_slope_per_c: 0.03, max_airflow_cfm: 12000.0, fan_rated_power_kw: 5.0, cop_rated: 3.5, cop_degradation_per_c: 0.04, initial_setpoint_c: 18.0, initial_fan_speed_pct: 100.0, supply_temp_lag_s: 30.0 }
+      - { unit_id: CRAC-2, rated_capacity_kw: 70.0, rated_return_temp_c: 24.0, capacity_slope_per_c: 0.03, max_airflow_cfm: 12000.0, fan_rated_power_kw: 5.0, cop_rated: 3.5, cop_degradation_per_c: 0.04, initial_setpoint_c: 18.0, initial_fan_speed_pct: 100.0, supply_temp_lag_s: 30.0 }
+
+  - zone_id: zone_b
+    containment_type: cold_aisle
+    recirculation_factor: 0.08
+    air_volume_m3: 600.0
+    envelope_r_kw: 0.02
+    initial_cold_aisle_temp_c: 20.0
+    initial_humidity_rh: 0.45
+    ashrae_class: A2
+    racks:
+      - { rack_id: B-01, row: B, position: 1, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-02, row: B, position: 2, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-03, row: B, position: 3, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-04, row: B, position: 4, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-05, row: B, position: 5, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-06, row: B, position: 6, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-07, row: B, position: 7, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-08, row: B, position: 8, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-09, row: B, position: 9, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+      - { rack_id: B-10, row: B, position: 10, it_load_kw: 8.0, num_servers_2u: 20, server_thermal_mass_jk: 11100.0, airflow_cfm_per_kw: 160.0 }
+    crac_units:
+      - { unit_id: CRAC-3, rated_capacity_kw: 70.0, rated_return_temp_c: 24.0, capacity_slope_per_c: 0.03, max_airflow_cfm: 12000.0, fan_rated_power_kw: 5.0, cop_rated: 3.5, cop_degradation_per_c: 0.04, initial_setpoint_c: 18.0, initial_fan_speed_pct: 100.0, supply_temp_lag_s: 30.0 }
+      - { unit_id: CRAC-4, rated_capacity_kw: 70.0, rated_return_temp_c: 24.0, capacity_slope_per_c: 0.03, max_airflow_cfm: 12000.0, fan_rated_power_kw: 5.0, cop_rated: 3.5, cop_degradation_per_c: 0.04, initial_setpoint_c: 18.0, initial_fan_speed_pct: 100.0, supply_temp_lag_s: 30.0 }
+
+power:
+  utility_voltage_v: 480.0
+  utility_available: true
+  ups_units:
+    - { unit_id: UPS-1, rated_capacity_kw: 500.0, loss_c0: 0.013, loss_c1: 0.006, loss_c2: 0.011, battery_capacity_kwh: 8.3, battery_discharge_efficiency: 0.90, battery_aging_factor: 0.85, battery_temp_c: 25.0, recharge_rate_kw: 5.0, initial_mode: double_conversion }
+    - { unit_id: UPS-2, rated_capacity_kw: 500.0, loss_c0: 0.013, loss_c1: 0.006, loss_c2: 0.011, battery_capacity_kwh: 8.3, battery_discharge_efficiency: 0.90, battery_aging_factor: 0.85, battery_temp_c: 25.0, recharge_rate_kw: 5.0, initial_mode: double_conversion }
+  pdus:
+    - { pdu_id: PDU-A-01, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-A-02, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-A-03, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-A-04, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-A-05, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-A-06, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-A-07, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-A-08, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-A-09, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-A-10, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-B-01, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-B-02, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-B-03, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-B-04, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-B-05, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-B-06, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-B-07, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-B-08, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-B-09, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+    - { pdu_id: PDU-B-10, voltage_ll_v: 208.0, max_current_per_phase_a: 24.0, num_phases: 3, breaker_rating_a: 20.0, num_outlets: 48, efficiency: 0.98, continuous_derating: 0.80 }
+  generator:
+    gen_id: GEN-1
+    rated_capacity_kw: 750.0
+    start_delay_s: 4.0
+    crank_time_s: 5.0
+    warmup_time_s: 8.0
+    fuel_tank_liters: 2000.0
+    consumption_lph_full: 180.0
+    cooldown_time_s: 300.0
+  ats:
+    ats_id: ATS-1
+    transfer_time_ms: 100.0
+    retransfer_delay_s: 300.0

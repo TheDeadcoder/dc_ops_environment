@@ -20,6 +20,8 @@ All internal simulation values use SI units:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Union
 
 
 # ---------------------------------------------------------------------------
@@ -371,4 +373,177 @@ def make_default_datacenter_config() -> DatacenterConfig:
         outside_temp_c=35.0,
         outside_humidity_rh=0.40,
         floor_area_m2=1200.0,
+    )
+
+
+# ---------------------------------------------------------------------------
+# YAML config loader
+# ---------------------------------------------------------------------------
+_CONFIG_DIR = Path(__file__).parent / "data" / "datacenter_configs"
+
+# Built-in config names (resolved relative to this package)
+BUILTIN_CONFIGS: dict[str, Path] = {
+    "default": _CONFIG_DIR / "default.yaml",
+    "small": _CONFIG_DIR / "small_facility.yaml",
+    "large": _CONFIG_DIR / "large_facility.yaml",
+}
+
+
+def load_datacenter_config(source: Union[str, Path]) -> DatacenterConfig:
+    """Load a DatacenterConfig from a YAML file or built-in name.
+
+    Args:
+        source: Either a built-in name ("default", "small", "large"),
+                or a path to a YAML file.
+
+    Returns:
+        Fully constructed DatacenterConfig.
+
+    Examples:
+        config = load_datacenter_config("small")
+        config = load_datacenter_config("/path/to/custom.yaml")
+    """
+    import yaml
+
+    # Resolve source to a file path
+    if isinstance(source, str) and source in BUILTIN_CONFIGS:
+        path = BUILTIN_CONFIGS[source]
+    else:
+        path = Path(source)
+
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {path}")
+
+    with open(path, "r") as f:
+        data = yaml.safe_load(f)
+
+    return _dict_to_datacenter_config(data)
+
+
+def _dict_to_datacenter_config(data: dict) -> DatacenterConfig:
+    """Convert a raw YAML dict into a DatacenterConfig."""
+    zones = [_dict_to_zone_config(z) for z in data.get("zones", [])]
+    power = _dict_to_power_config(data.get("power", {}))
+
+    return DatacenterConfig(
+        name=data.get("name", "DC-OPS Facility"),
+        zones=zones,
+        power=power,
+        outside_temp_c=data.get("outside_temp_c", 35.0),
+        outside_humidity_rh=data.get("outside_humidity_rh", 0.40),
+        lighting_w_per_m2=data.get("lighting_w_per_m2", 10.0),
+        floor_area_m2=data.get("floor_area_m2", 500.0),
+        simulation_dt_s=data.get("simulation_dt_s", 1.0),
+        ups_loss_fraction=data.get("ups_loss_fraction", 0.05),
+        pdu_loss_fraction=data.get("pdu_loss_fraction", 0.02),
+    )
+
+
+def _dict_to_zone_config(data: dict) -> ZoneConfig:
+    """Convert a raw dict into a ZoneConfig."""
+    racks = [_dict_to_rack_config(r) for r in data.get("racks", [])]
+    cracs = [_dict_to_crac_config(c) for c in data.get("crac_units", [])]
+
+    return ZoneConfig(
+        zone_id=data.get("zone_id", "zone_a"),
+        racks=racks,
+        crac_units=cracs,
+        containment_type=data.get("containment_type", "cold_aisle"),
+        recirculation_factor=data.get("recirculation_factor", 0.08),
+        air_volume_m3=data.get("air_volume_m3", 500.0),
+        envelope_r_kw=data.get("envelope_r_kw", 0.02),
+        initial_cold_aisle_temp_c=data.get("initial_cold_aisle_temp_c", 20.0),
+        initial_humidity_rh=data.get("initial_humidity_rh", 0.45),
+        ashrae_class=data.get("ashrae_class", "A2"),
+    )
+
+
+def _dict_to_rack_config(data: dict) -> RackConfig:
+    """Convert a raw dict into a RackConfig."""
+    return RackConfig(
+        rack_id=data.get("rack_id", "A-01"),
+        row=data.get("row", "A"),
+        position=data.get("position", 1),
+        it_load_kw=data.get("it_load_kw", 8.0),
+        num_servers_2u=data.get("num_servers_2u", 20),
+        server_thermal_mass_jk=data.get("server_thermal_mass_jk", 11100.0),
+        airflow_cfm_per_kw=data.get("airflow_cfm_per_kw", 160.0),
+    )
+
+
+def _dict_to_crac_config(data: dict) -> CRACConfig:
+    """Convert a raw dict into a CRACConfig."""
+    return CRACConfig(
+        unit_id=data.get("unit_id", "CRAC-1"),
+        rated_capacity_kw=data.get("rated_capacity_kw", 70.0),
+        rated_return_temp_c=data.get("rated_return_temp_c", 24.0),
+        capacity_slope_per_c=data.get("capacity_slope_per_c", 0.03),
+        max_airflow_cfm=data.get("max_airflow_cfm", 12000.0),
+        fan_rated_power_kw=data.get("fan_rated_power_kw", 5.0),
+        cop_rated=data.get("cop_rated", 3.5),
+        cop_degradation_per_c=data.get("cop_degradation_per_c", 0.04),
+        initial_setpoint_c=data.get("initial_setpoint_c", 18.0),
+        initial_fan_speed_pct=data.get("initial_fan_speed_pct", 100.0),
+        supply_temp_lag_s=data.get("supply_temp_lag_s", 30.0),
+    )
+
+
+def _dict_to_power_config(data: dict) -> PowerConfig:
+    """Convert a raw dict into a PowerConfig."""
+    ups = [_dict_to_ups_config(u) for u in data.get("ups_units", [])]
+    pdus = [_dict_to_pdu_config(p) for p in data.get("pdus", [])]
+    gen_data = data.get("generator", {})
+    ats_data = data.get("ats", {})
+
+    return PowerConfig(
+        ups_units=ups,
+        pdus=pdus,
+        generator=GeneratorConfig(
+            gen_id=gen_data.get("gen_id", "GEN-1"),
+            rated_capacity_kw=gen_data.get("rated_capacity_kw", 750.0),
+            start_delay_s=gen_data.get("start_delay_s", 4.0),
+            crank_time_s=gen_data.get("crank_time_s", 5.0),
+            warmup_time_s=gen_data.get("warmup_time_s", 8.0),
+            fuel_tank_liters=gen_data.get("fuel_tank_liters", 2000.0),
+            consumption_lph_full=gen_data.get("consumption_lph_full", 180.0),
+            cooldown_time_s=gen_data.get("cooldown_time_s", 300.0),
+        ),
+        ats=ATSConfig(
+            ats_id=ats_data.get("ats_id", "ATS-1"),
+            transfer_time_ms=ats_data.get("transfer_time_ms", 100.0),
+            retransfer_delay_s=ats_data.get("retransfer_delay_s", 300.0),
+        ),
+        utility_voltage_v=data.get("utility_voltage_v", 480.0),
+        utility_available=data.get("utility_available", True),
+    )
+
+
+def _dict_to_ups_config(data: dict) -> UPSConfig:
+    """Convert a raw dict into a UPSConfig."""
+    return UPSConfig(
+        unit_id=data.get("unit_id", "UPS-1"),
+        rated_capacity_kw=data.get("rated_capacity_kw", 500.0),
+        loss_c0=data.get("loss_c0", 0.013),
+        loss_c1=data.get("loss_c1", 0.006),
+        loss_c2=data.get("loss_c2", 0.011),
+        battery_capacity_kwh=data.get("battery_capacity_kwh", 8.3),
+        battery_discharge_efficiency=data.get("battery_discharge_efficiency", 0.90),
+        battery_aging_factor=data.get("battery_aging_factor", 0.85),
+        battery_temp_c=data.get("battery_temp_c", 25.0),
+        recharge_rate_kw=data.get("recharge_rate_kw", 5.0),
+        initial_mode=data.get("initial_mode", "double_conversion"),
+    )
+
+
+def _dict_to_pdu_config(data: dict) -> PDUConfig:
+    """Convert a raw dict into a PDUConfig."""
+    return PDUConfig(
+        pdu_id=data.get("pdu_id", "PDU-A1"),
+        voltage_ll_v=data.get("voltage_ll_v", 208.0),
+        max_current_per_phase_a=data.get("max_current_per_phase_a", 24.0),
+        num_phases=data.get("num_phases", 3),
+        breaker_rating_a=data.get("breaker_rating_a", 20.0),
+        num_outlets=data.get("num_outlets", 48),
+        efficiency=data.get("efficiency", 0.98),
+        continuous_derating=data.get("continuous_derating", 0.80),
     )
