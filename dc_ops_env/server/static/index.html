@@ -81,7 +81,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);min-hei
 .dashboard-title-bar .dots span:nth-child(2){background:#eab308}
 .dashboard-title-bar .dots span:nth-child(3){background:#22c55e}
 .dashboard-title-bar .title{font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono)}
-.dashboard-output{padding:1rem;font-family:var(--font-mono);font-size:0.75rem;line-height:1.55;white-space:pre;overflow-x:auto;min-height:200px;color:var(--green)}
+.dashboard-output{padding:1rem;font-family:var(--font-mono);font-size:0.75rem;line-height:1.2;white-space:pre;overflow-x:auto;min-height:200px;color:var(--green)}
 
 /* Action result box */
 .action-result{margin-top:0.75rem;background:var(--terminal-bg);border:1px solid var(--border);border-radius:var(--radius);padding:0.625rem 0.875rem;font-family:var(--font-mono);font-size:0.75rem;max-height:100px;overflow-y:auto;transition:all 0.2s}
@@ -206,7 +206,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);min-hei
 @media(max-width:640px){
   .header{padding:0.5rem 0.75rem}
   .logo{font-size:1rem}
-  .dashboard-output{font-size:0.62rem;padding:0.5rem;line-height:1.4}
+  .dashboard-output{font-size:0.62rem;padding:0.5rem;line-height:1.2}
   .metrics-grid{grid-template-columns:1fr 1fr}
   html{font-size:13px}
   .command-input{font-size:0.75rem}
@@ -302,7 +302,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);min-hei
       </div>
       <div class="sidebar-actions">
         <select id="configSelect" class="config-select">
-          <option value="">Default Facility (2 zones, 160 kW)</option>
+          <option value="default">Default Facility (2 zones, 160 kW)</option>
+          <option value="small">Small Facility (1 zone, 80 kW)</option>
+          <option value="large">Large Facility (4 zones, 600 kW)</option>
         </select>
         <button id="startBtn" class="btn btn-primary" onclick="startEpisode()" disabled>
           Select a Scenario
@@ -433,6 +435,8 @@ let maxSteps = 0;
 let cumulativeReward = 0;
 let rewardEntries = [];
 let isProcessing = false;
+let ws = null;
+let pendingResolve = null; // For awaiting WS responses
 const BASE_URL = window.location.origin;
 
 // ─── Scenario metadata ──────────────────────────────────────────────
@@ -445,9 +449,73 @@ const SCENARIOS = {
   B4: { name: 'Power Failure Cascade', type: 'power', diff: 'Hard' },
 };
 
+// ─── WebSocket connection ────────────────────────────────────────────
+function connectWebSocket() {
+  return new Promise((resolve, reject) => {
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      setStatus('connected');
+      resolve();
+    };
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (pendingResolve) {
+        const resolver = pendingResolve;
+        pendingResolve = null;
+        resolver(msg);
+      }
+    };
+
+    ws.onerror = (err) => {
+      setStatus('disconnected');
+      reject(new Error('WebSocket connection failed'));
+    };
+
+    ws.onclose = () => {
+      setStatus('disconnected');
+      ws = null;
+      if (episodeActive) {
+        episodeActive = false;
+        setControlsEnabled(false);
+        showActionResult('WebSocket disconnected. Reset to reconnect.', 'error');
+      }
+    };
+  });
+}
+
+function wsSend(message) {
+  return new Promise((resolve, reject) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      reject(new Error('WebSocket not connected'));
+      return;
+    }
+    pendingResolve = resolve;
+    ws.send(JSON.stringify(message));
+    // Timeout after 30s
+    setTimeout(() => {
+      if (pendingResolve === resolve) {
+        pendingResolve = null;
+        reject(new Error('WebSocket request timed out'));
+      }
+    }, 30000);
+  });
+}
+
+function closeWebSocket() {
+  if (ws) {
+    ws.close();
+    ws = null;
+  }
+  pendingResolve = null;
+}
+
 // ─── UI helpers ──────────────────────────────────────────────────────
 function selectScenario(id) {
-  if (episodeActive) return; // Don't change during active episode
+  if (episodeActive) return;
   selectedScenario = id;
   document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
   const card = document.querySelector(`.scenario-card[data-id="${id}"]`);
@@ -492,9 +560,6 @@ function setStatus(state) {
 }
 
 // ─── Dashboard text parsing ──────────────────────────────────────────
-// Since OpenEnv's serialize_observation() excludes metadata,
-// we parse metrics directly from the dashboard text.
-
 function parseDashboard(dashboard) {
   const metrics = {};
 
@@ -515,7 +580,6 @@ function parseDashboard(dashboard) {
   if (outMatch) metrics.outside = parseFloat(outMatch[1]);
 
   // Zone temperatures
-  // Format: zone_x       19.8°C     30.8°C     19.8°C    80.0     A2
   metrics.zones = [];
   const zoneRegex = /(zone_\w+)\s+([\d.]+)°C\s+([\d.]+)°C\s+([\d.]+)°C/g;
   let zm;
@@ -538,25 +602,10 @@ function parseDashboard(dashboard) {
   const atsMatch = dashboard.match(/ATS:\s+(\w+)/);
   if (atsMatch) metrics.ats = atsMatch[1];
 
-  // UPS info - capture UPS lines
   const upsMatch = dashboard.match(/UPS:\s+(.+)/);
   if (upsMatch) metrics.ups = upsMatch[1].trim();
 
   return metrics;
-}
-
-// ─── API calls ───────────────────────────────────────────────────────
-async function apiPost(path, body = {}) {
-  const resp = await fetch(`${BASE_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`HTTP ${resp.status}: ${errText}`);
-  }
-  return resp.json();
 }
 
 // ─── Start episode ───────────────────────────────────────────────────
@@ -569,15 +618,32 @@ async function startEpisode() {
   setStatus('loading');
 
   try {
-    // Reset endpoint accepts extra kwargs (scenario is passed through to env.reset())
-    const data = await apiPost('/reset', { scenario: selectedScenario });
-    setStatus('connected');
+    // Close any existing WebSocket connection
+    closeWebSocket();
+
+    // Open a fresh WebSocket session (each WS gets its own env instance)
+    await connectWebSocket();
+
+    // Send reset via WebSocket
+    const resetData = { scenario: selectedScenario };
+    const configName = document.getElementById('configSelect').value;
+    if (configName && configName !== 'default') {
+      resetData.config_name = configName;
+    }
+
+    const resp = await wsSend({ type: 'reset', data: resetData });
+
+    if (resp.type === 'error') {
+      throw new Error(resp.data?.message || 'Reset failed');
+    }
+
+    // resp: { type: "observation", data: { observation: {...}, reward: float, done: bool } }
     episodeActive = true;
     stepCount = 0;
     cumulativeReward = 0;
     rewardEntries = [];
 
-    processResponse(data);
+    processResponse(resp.data);
 
     setControlsEnabled(true);
     document.getElementById('startBtn').style.display = 'none';
@@ -586,7 +652,6 @@ async function startEpisode() {
     document.getElementById('rewardHistory').innerHTML = '<div class="no-data">No steps yet</div>';
     document.getElementById('actionResult').style.display = 'none';
 
-    // Update scenario display
     const info = SCENARIOS[selectedScenario];
     document.getElementById('metaScenario').textContent = `${selectedScenario} - ${info.name}`;
 
@@ -595,6 +660,7 @@ async function startEpisode() {
     showActionResult('Failed to start: ' + e.message, 'error');
     btn.disabled = false;
     btn.textContent = `Start ${selectedScenario}: ${SCENARIOS[selectedScenario].name}`;
+    closeWebSocket();
   } finally {
     isProcessing = false;
   }
@@ -604,6 +670,7 @@ async function startEpisode() {
 function resetEpisode() {
   episodeActive = false;
   setControlsEnabled(false);
+  closeWebSocket();
   document.getElementById('startBtn').style.display = 'block';
   document.getElementById('startBtn').disabled = false;
   document.getElementById('startBtn').textContent =
@@ -611,6 +678,7 @@ function resetEpisode() {
   document.getElementById('resetBtn').style.display = 'none';
   document.getElementById('doneBanner').classList.remove('show');
   document.getElementById('terminalTitle').textContent = 'dc-ops-console';
+  setStatus('disconnected');
 }
 
 // ─── Send command ────────────────────────────────────────────────────
@@ -623,16 +691,22 @@ async function sendCommand() {
   isProcessing = true;
   setControlsEnabled(false);
   const sendBtn = document.getElementById('sendBtn');
-  sendBtn.disabled = false; // Keep send btn visible but show spinner
+  sendBtn.disabled = false;
   sendBtn.innerHTML = '<span class="spinner"></span>';
 
   try {
-    // OpenEnv step endpoint requires: { "action": { ...action_fields... } }
-    const data = await apiPost('/step', {
-      action: { command: cmd, reasoning: '' }
+    // WebSocket step: { type: "step", data: { command: "...", reasoning: "" } }
+    const resp = await wsSend({
+      type: 'step',
+      data: { command: cmd, reasoning: '' }
     });
+
+    if (resp.type === 'error') {
+      throw new Error(resp.data?.message || 'Step failed');
+    }
+
     stepCount++;
-    processResponse(data, cmd);
+    processResponse(resp.data, cmd);
   } catch (e) {
     showActionResult('Error: ' + e.message, 'error');
   } finally {
@@ -754,7 +828,6 @@ function updateZoneBars(zones) {
   container.innerHTML = '';
   for (const z of zones) {
     const temp = z.inlet;
-    // Scale: 15°C → 0%, 45°C → 100%
     const pct = Math.max(0, Math.min(100, ((temp - 15) / 30) * 100));
     const cls = temp <= 27 ? 'safe' : temp <= 35 ? 'warning' : 'critical';
     const colorVar = cls === 'safe' ? '--green' : cls === 'warning' ? '--yellow' : '--red';
@@ -790,7 +863,6 @@ function updatePowerInfo(metrics) {
     html += `<div class="power-row"><span class="pw-label">ATS</span><span class="pw-val ${cls}">${metrics.ats}</span></div>`;
   }
   if (metrics.ups) {
-    // Split UPS entries by |
     const parts = metrics.ups.split('|').map(s => s.trim()).filter(Boolean);
     for (const p of parts) {
       const hasBattery = /BATTERY/i.test(p);
@@ -807,7 +879,6 @@ function updatePowerInfo(metrics) {
 function updateRewardHistory() {
   const container = document.getElementById('rewardHistory');
   container.innerHTML = '';
-  // Show most recent first
   for (let i = rewardEntries.length - 1; i >= 0; i--) {
     const e = rewardEntries[i];
     const cls = e.reward > 0.005 ? 'pos' : e.reward < -0.005 ? 'neg' : 'zero';

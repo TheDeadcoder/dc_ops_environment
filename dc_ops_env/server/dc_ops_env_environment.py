@@ -31,6 +31,7 @@ try:
         DatacenterConfig,
         PowerConfig,
         make_default_datacenter_config,
+        load_datacenter_config,
     )
     from ..models import DcOpsAction, DcOpsObservation
     from ..actions.parser import AVAILABLE_ACTIONS, CommandResult, parse_command
@@ -46,6 +47,7 @@ except ImportError:
         DatacenterConfig,
         PowerConfig,
         make_default_datacenter_config,
+        load_datacenter_config,
     )
     from models import DcOpsAction, DcOpsObservation
     from actions.parser import AVAILABLE_ACTIONS, CommandResult, parse_command
@@ -108,6 +110,8 @@ class DcOpsEnvironment(Environment):
                 If provided, overrides config/alert/step_budget/scenario_type.
                 If not provided, uses raw kwargs (backward compatible).
             config (DatacenterConfig): Custom datacenter configuration.
+            config_name (str): Built-in config name ("default", "small", "large").
+                Used when config is not provided (e.g. from WebSocket/HTTP JSON).
             step_budget (int): Max steps for the episode.
             game_time_per_step_s (float): Simulation time per step.
             scenario_type (str): Scenario category label.
@@ -141,7 +145,15 @@ class DcOpsEnvironment(Environment):
             self._scenario = None
 
         # Configuration — scenario can modify the base config
-        self._config = kwargs.get("config", make_default_datacenter_config())
+        # Support config_name (string) from JSON APIs, or config (DatacenterConfig) from Python
+        config_arg = kwargs.get("config")
+        config_name = kwargs.get("config_name")
+        if isinstance(config_arg, DatacenterConfig):
+            self._config = config_arg
+        elif config_name and isinstance(config_name, str) and config_name != "default":
+            self._config = load_datacenter_config(config_name)
+        else:
+            self._config = make_default_datacenter_config()
         if self._scenario:
             self._config = self._scenario.configure(self._config)
 

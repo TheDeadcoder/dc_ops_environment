@@ -54,7 +54,7 @@ app = create_app(
     DcOpsAction,
     DcOpsObservation,
     env_name="dc_ops_env",
-    max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
+    max_concurrent_envs=4,  # increase this number to allow more concurrent WebSocket sessions
 )
 
 # Mount custom DC-Ops dashboard UI at /web
