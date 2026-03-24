@@ -28,6 +28,11 @@ Usage:
     python -m server.app
 """
 
+from pathlib import Path
+
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 try:
     from openenv.core.env_server.http_server import create_app
 except Exception as e:  # pragma: no cover
@@ -51,6 +56,18 @@ app = create_app(
     env_name="dc_ops_env",
     max_concurrent_envs=1,  # increase this number to allow more concurrent WebSocket sessions
 )
+
+# Mount custom DC-Ops dashboard UI at /web
+_STATIC_DIR = Path(__file__).parent / "static"
+
+
+@app.get("/web")
+async def web_ui():
+    """Serve the DC-Ops operations console."""
+    return FileResponse(_STATIC_DIR / "index.html", media_type="text/html")
+
+
+app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
 
 def main(host: str = "0.0.0.0", port: int = 8000):

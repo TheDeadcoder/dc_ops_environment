@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DC-Ops | Datacenter Operations Console</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e17;--bg-card:#111827;--bg-card-hover:#1a2332;
+  --border:#1e2d3d;--border-active:#3b82f6;
+  --text:#e2e8f0;--text-dim:#94a3b8;--text-muted:#64748b;
+  --accent:#3b82f6;--accent-hover:#2563eb;
+  --green:#22c55e;--green-dim:#166534;
+  --red:#ef4444;--red-dim:#991b1b;
+  --yellow:#eab308;--yellow-dim:#854d0e;
+  --orange:#f97316;
+  --cyan:#06b6d4;
+  --terminal-bg:#0d1117;
+  --font-mono:'JetBrains Mono','Fira Code','SF Mono','Cascadia Code',Consolas,monospace;
+  --font-sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --radius:8px;--radius-lg:12px;
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:var(--font-sans);min-height:100vh;overflow-x:hidden}
+
+/* Layout */
+.app{display:grid;grid-template-rows:auto 1fr;height:100vh}
+.header{background:var(--bg-card);border-bottom:1px solid var(--border);padding:0.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.header-left{display:flex;align-items:center;gap:0.75rem}
+.logo{font-size:1.25rem;font-weight:700;letter-spacing:-0.02em}
+.logo span{color:var(--accent)}
+.status-badge{display:inline-flex;align-items:center;gap:0.375rem;padding:0.25rem 0.75rem;border-radius:999px;font-size:0.75rem;font-weight:500}
+.status-badge.connected{background:var(--green-dim);color:var(--green)}
+.status-badge.disconnected{background:var(--red-dim);color:var(--red)}
+.status-badge.loading{background:var(--yellow-dim);color:var(--yellow)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.status-badge.connected .status-dot{animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+
+.main{display:grid;grid-template-columns:280px 1fr 300px;gap:0;overflow:hidden}
+
+/* Sidebar - Scenario Browser */
+.sidebar{background:var(--bg-card);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-header{padding:0.875rem 1rem;border-bottom:1px solid var(--border);font-weight:600;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim)}
+.scenario-list{flex:1;overflow-y:auto;padding:0.5rem}
+.scenario-group{margin-bottom:0.75rem}
+.scenario-group-title{padding:0.375rem 0.75rem;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted)}
+.scenario-card{padding:0.625rem 0.75rem;margin:0.25rem 0;border-radius:var(--radius);cursor:pointer;transition:all 0.15s;border:1px solid transparent}
+.scenario-card:hover{background:var(--bg-card-hover);border-color:var(--border)}
+.scenario-card.active{background:rgba(59,130,246,0.08);border-color:var(--accent)}
+.scenario-card .sc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem}
+.scenario-card .sc-id{font-weight:700;font-family:var(--font-mono);font-size:0.8rem;color:var(--accent)}
+.scenario-card .sc-diff{font-size:0.6rem;font-weight:700;padding:0.1rem 0.5rem;border-radius:999px;text-transform:uppercase;letter-spacing:0.05em}
+.sc-diff.easy{background:var(--green-dim);color:var(--green)}
+.sc-diff.medium{background:var(--yellow-dim);color:var(--yellow)}
+.sc-diff.hard{background:var(--red-dim);color:var(--red)}
+.scenario-card .sc-name{font-size:0.78rem;font-weight:500;color:var(--text);margin-bottom:0.125rem}
+.scenario-card .sc-desc{font-size:0.68rem;color:var(--text-muted);line-height:1.4}
+
+.sidebar-actions{padding:0.75rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:0.5rem}
+.config-select{width:100%;padding:0.5rem 0.625rem;background:var(--terminal-bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:0.78rem;font-family:var(--font-sans);appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M3 5l3 3 3-3'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 0.5rem center;padding-right:1.5rem}
+.config-select:focus{outline:none;border-color:var(--accent)}
+.btn{padding:0.625rem 1rem;border-radius:var(--radius);border:none;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.15s;text-align:center;font-family:var(--font-sans);display:flex;align-items:center;justify-content:center;gap:0.5rem}
+.btn-primary{background:var(--accent);color:white}
+.btn-primary:hover:not(:disabled){background:var(--accent-hover)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,0.2)}
+.btn-danger:hover{background:var(--red);color:white}
+.btn-outline{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--text-dim);color:var(--text)}
+
+/* Center Panel - Dashboard */
+.center{display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.dashboard-container{flex:1;overflow-y:auto;padding:1rem}
+.dashboard-box{background:var(--terminal-bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.dashboard-title-bar{display:flex;align-items:center;justify-content:space-between;padding:0.5rem 1rem;background:rgba(255,255,255,0.03);border-bottom:1px solid var(--border)}
+.dashboard-title-bar .dots{display:flex;gap:6px}
+.dashboard-title-bar .dots span{width:10px;height:10px;border-radius:50%}
+.dashboard-title-bar .dots span:nth-child(1){background:#ef4444}
+.dashboard-title-bar .dots span:nth-child(2){background:#eab308}
+.dashboard-title-bar .dots span:nth-child(3){background:#22c55e}
+.dashboard-title-bar .title{font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono)}
+.dashboard-output{padding:1rem;font-family:var(--font-mono);font-size:0.75rem;line-height:1.55;white-space:pre;overflow-x:auto;min-height:200px;color:var(--green)}
+
+/* Action result box */
+.action-result{margin-top:0.75rem;background:var(--terminal-bg);border:1px solid var(--border);border-radius:var(--radius);padding:0.625rem 0.875rem;font-family:var(--font-mono);font-size:0.75rem;max-height:100px;overflow-y:auto;transition:all 0.2s}
+.action-result.error{color:var(--red);border-color:rgba(239,68,68,0.3)}
+.action-result.success{color:var(--cyan);border-color:rgba(6,182,212,0.3)}
+
+/* Welcome screen */
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3rem 2rem;min-height:300px;white-space:normal}
+.welcome h2{font-size:1.4rem;color:var(--text);margin-bottom:0.75rem;font-weight:700}
+.welcome p{max-width:380px;line-height:1.7;font-size:0.85rem;color:var(--text-dim)}
+.welcome .hint{margin-top:1.5rem;display:flex;align-items:center;gap:0.5rem;color:var(--accent);font-size:0.8rem;opacity:0.7}
+.welcome .hint svg{width:20px;height:20px}
+
+/* Command Bar */
+.command-bar{padding:0.75rem 1rem;border-top:1px solid var(--border);background:var(--bg-card)}
+.command-input-group{display:flex;gap:0.5rem}
+.command-input{flex:1;padding:0.625rem 0.875rem;background:var(--terminal-bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:0.8rem;min-width:0}
+.command-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,0.12)}
+.command-input::placeholder{color:var(--text-muted)}
+.command-input:disabled{opacity:0.4}
+.quick-actions{display:flex;gap:0.375rem;margin-top:0.5rem;flex-wrap:wrap}
+.quick-btn{padding:0.2rem 0.5rem;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:999px;color:var(--text-dim);font-size:0.68rem;cursor:pointer;font-family:var(--font-mono);transition:all 0.15s;white-space:nowrap}
+.quick-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.quick-btn:disabled{opacity:0.3;cursor:not-allowed}
+
+/* Right Panel - Metrics */
+.right-panel{background:var(--bg-card);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.panel-section{padding:0.875rem;border-bottom:1px solid var(--border)}
+.panel-section-title{font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:0.625rem}
+
+/* Metrics grid */
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.375rem}
+.metric{background:var(--terminal-bg);padding:0.5rem 0.625rem;border-radius:var(--radius);border:1px solid var(--border)}
+.metric-label{font-size:0.6rem;color:var(--text-muted);margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:0.05em}
+.metric-value{font-size:1rem;font-weight:700;font-family:var(--font-mono)}
+.metric-value.good{color:var(--green)}
+.metric-value.warn{color:var(--yellow)}
+.metric-value.danger{color:var(--red)}
+.metric-value.neutral{color:var(--text)}
+
+/* Episode info */
+.episode-info{display:flex;flex-direction:column;gap:0.375rem}
+.episode-row{display:flex;justify-content:space-between;align-items:center;font-size:0.78rem}
+.episode-row .label{color:var(--text-muted)}
+.episode-row .value{font-family:var(--font-mono);font-weight:600}
+
+/* Progress bar */
+.progress-bar{height:5px;background:var(--terminal-bg);border-radius:999px;overflow:hidden;border:1px solid var(--border)}
+.progress-fill{height:100%;border-radius:999px;transition:width 0.3s;background:var(--accent)}
+.progress-fill.low{background:var(--green)}
+.progress-fill.mid{background:var(--yellow)}
+.progress-fill.high{background:var(--red)}
+
+/* Power status */
+.power-row{display:flex;justify-content:space-between;align-items:center;padding:0.375rem 0.5rem;background:var(--terminal-bg);border-radius:4px;font-size:0.72rem;font-family:var(--font-mono);border:1px solid var(--border);margin-bottom:0.375rem}
+.power-row .pw-label{color:var(--text-dim)}
+.power-row .pw-val{font-weight:600}
+.power-row .pw-val.ok{color:var(--green)}
+.power-row .pw-val.warn{color:var(--yellow)}
+.power-row .pw-val.bad{color:var(--red)}
+
+/* Reward history */
+.reward-history{display:flex;flex-direction:column;gap:0.25rem;max-height:180px;overflow-y:auto}
+.reward-entry{display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0.5rem;background:var(--terminal-bg);border-radius:4px;font-size:0.7rem;font-family:var(--font-mono)}
+.reward-entry .step{color:var(--text-muted);width:24px;flex-shrink:0}
+.reward-entry .cmd{color:var(--text-dim);flex:1;margin:0 0.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reward-entry .rew{font-weight:700;flex-shrink:0}
+.reward-entry .rew.pos{color:var(--green)}
+.reward-entry .rew.neg{color:var(--red)}
+.reward-entry .rew.zero{color:var(--text-muted)}
+
+/* Zone temps bar chart */
+.zone-bars{display:flex;flex-direction:column;gap:0.375rem}
+.zone-bar-row{display:flex;align-items:center;gap:0.5rem;font-size:0.72rem}
+.zone-bar-label{width:44px;color:var(--text-dim);font-family:var(--font-mono);flex-shrink:0}
+.zone-bar-track{flex:1;height:14px;background:var(--terminal-bg);border-radius:3px;position:relative;overflow:hidden;border:1px solid var(--border)}
+.zone-bar-fill{height:100%;border-radius:2px;transition:width 0.3s}
+.zone-bar-fill.safe{background:linear-gradient(90deg,var(--green-dim),var(--green))}
+.zone-bar-fill.warning{background:linear-gradient(90deg,var(--yellow-dim),var(--yellow))}
+.zone-bar-fill.critical{background:linear-gradient(90deg,var(--red-dim),var(--red))}
+.zone-bar-value{width:52px;text-align:right;font-family:var(--font-mono);font-weight:600;flex-shrink:0}
+
+/* Episode done banner */
+.episode-done-banner{padding:0.625rem 1rem;text-align:center;font-weight:600;font-size:0.8rem;border-radius:var(--radius);margin-bottom:0.75rem;display:none}
+.episode-done-banner.show{display:block}
+.episode-done-banner.resolved{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,0.3)}
+.episode-done-banner.failed{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,0.3)}
+.episode-done-banner.timeout{background:var(--yellow-dim);color:var(--yellow);border:1px solid rgba(234,179,8,0.3)}
+
+/* No data placeholder */
+.no-data{font-size:0.75rem;color:var(--text-muted);text-align:center;padding:0.75rem 0.5rem}
+
+/* Spinner */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.2);border-top-color:currentColor;border-radius:50%;animation:spin 0.5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+
+/* Responsive - Tablet */
+@media(max-width:1100px){
+  .main{grid-template-columns:1fr;grid-template-rows:auto 1fr auto}
+  .sidebar{border-right:none;border-bottom:1px solid var(--border);max-height:none}
+  .sidebar.collapsed{display:none}
+  .right-panel{border-left:none;border-top:1px solid var(--border);max-height:none}
+  .right-panel.collapsed{display:none}
+  .sidebar-header{display:none}
+  .scenario-list{display:flex;overflow-x:auto;overflow-y:hidden;padding:0.5rem;gap:0.5rem}
+  .scenario-group{display:flex;gap:0.5rem;margin:0;flex-shrink:0}
+  .scenario-group-title{writing-mode:vertical-lr;padding:0.5rem 0.25rem;font-size:0.6rem}
+  .scenario-card{min-width:160px;flex-shrink:0}
+  .sidebar-actions{flex-direction:row}
+  .config-select{width:auto;flex:1}
+  .right-panel .panel-section{padding:0.625rem 0.75rem}
+  .metrics-grid{grid-template-columns:repeat(4,1fr)}
+}
+
+/* Responsive - Mobile */
+@media(max-width:640px){
+  .header{padding:0.5rem 0.75rem}
+  .logo{font-size:1rem}
+  .dashboard-output{font-size:0.62rem;padding:0.5rem;line-height:1.4}
+  .metrics-grid{grid-template-columns:1fr 1fr}
+  html{font-size:13px}
+  .command-input{font-size:0.75rem}
+  .scenario-card{min-width:140px}
+  .sidebar-actions{flex-direction:column}
+}
+
+/* Toggle buttons for mobile */
+.mobile-toggles{display:none;gap:0.5rem}
+@media(max-width:1100px){.mobile-toggles{display:flex}}
+.toggle-btn{padding:0.25rem 0.625rem;background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-dim);font-size:0.7rem;cursor:pointer;font-family:var(--font-sans);transition:all 0.15s}
+.toggle-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(59,130,246,0.08)}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">DC<span>-Ops</span></div>
+      <div id="statusBadge" class="status-badge disconnected">
+        <span class="status-dot"></span>
+        <span id="statusText">Disconnected</span>
+      </div>
+    </div>
+    <div class="mobile-toggles">
+      <button class="toggle-btn active" id="toggleScenarios" onclick="togglePanel('sidebar')">Scenarios</button>
+      <button class="toggle-btn active" id="toggleMetrics" onclick="togglePanel('right-panel')">Metrics</button>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="main">
+    <!-- Left: Scenario Browser -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">Scenario Browser</div>
+      <div class="scenario-list" id="scenarioList">
+        <div class="scenario-group">
+          <div class="scenario-group-title">Thermal</div>
+          <div class="scenario-card" data-id="A1" onclick="selectScenario('A1')">
+            <div class="sc-header">
+              <span class="sc-id">A1</span>
+              <span class="sc-diff easy">Easy</span>
+            </div>
+            <div class="sc-name">Cooling Setpoint Optimization</div>
+            <div class="sc-desc">CRACs overcooling at 15°C. Optimize for efficiency while staying in ASHRAE range.</div>
+          </div>
+          <div class="scenario-card" data-id="A2" onclick="selectScenario('A2')">
+            <div class="sc-header">
+              <span class="sc-id">A2</span>
+              <span class="sc-diff medium">Medium</span>
+            </div>
+            <div class="sc-name">Thermal Event Response</div>
+            <div class="sc-desc">CRAC-3 compressor failure. Diagnose and stabilize all zones.</div>
+          </div>
+          <div class="scenario-card" data-id="A4" onclick="selectScenario('A4')">
+            <div class="sc-header">
+              <span class="sc-id">A4</span>
+              <span class="sc-diff hard">Hard</span>
+            </div>
+            <div class="sc-name">CRAC Failure Cascade</div>
+            <div class="sc-desc">CRAC-1 compressor + CRAC-3 fan failure. Manage cascading thermal event.</div>
+          </div>
+        </div>
+        <div class="scenario-group">
+          <div class="scenario-group-title">Power</div>
+          <div class="scenario-card" data-id="B1" onclick="selectScenario('B1')">
+            <div class="sc-header">
+              <span class="sc-id">B1</span>
+              <span class="sc-diff medium">Medium</span>
+            </div>
+            <div class="sc-name">UPS Alarm Response</div>
+            <div class="sc-desc">UPS transferred to battery after utility event. Diagnose and acknowledge.</div>
+          </div>
+          <div class="scenario-card" data-id="B3" onclick="selectScenario('B3')">
+            <div class="sc-header">
+              <span class="sc-id">B3</span>
+              <span class="sc-diff easy">Easy</span>
+            </div>
+            <div class="sc-name">Generator Test Protocol</div>
+            <div class="sc-desc">Routine monthly generator test. Follow 5-step protocol correctly.</div>
+          </div>
+          <div class="scenario-card" data-id="B4" onclick="selectScenario('B4')">
+            <div class="sc-header">
+              <span class="sc-id">B4</span>
+              <span class="sc-diff hard">Hard</span>
+            </div>
+            <div class="sc-name">Power Failure Cascade</div>
+            <div class="sc-desc">Utility loss + extended generator warmup. Manage battery and thermal.</div>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-actions">
+        <select id="configSelect" class="config-select">
+          <option value="">Default Facility (2 zones, 160 kW)</option>
+        </select>
+        <button id="startBtn" class="btn btn-primary" onclick="startEpisode()" disabled>
+          Select a Scenario
+        </button>
+        <button id="resetBtn" class="btn btn-outline" onclick="resetEpisode()" style="display:none">
+          Reset Episode
+        </button>
+      </div>
+    </aside>
+
+    <!-- Center: Dashboard Display -->
+    <div class="center">
+      <div class="dashboard-container" id="dashboardContainer">
+        <div id="doneBanner" class="episode-done-banner"></div>
+        <div class="dashboard-box">
+          <div class="dashboard-title-bar">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <div class="title" id="terminalTitle">dc-ops-console</div>
+          </div>
+          <div class="dashboard-output" id="dashboardOutput"><div class="welcome">
+<h2>DC-Ops Operations Console</h2>
+<p>Select a scenario from the panel to begin a datacenter operations episode. Issue commands and monitor the facility in real-time.</p>
+<div class="hint">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+Pick a scenario to start
+</div>
+</div></div>
+        </div>
+        <div id="actionResult" class="action-result" style="display:none"></div>
+      </div>
+
+      <!-- Command Bar -->
+      <div class="command-bar">
+        <div class="command-input-group">
+          <input type="text" id="commandInput" class="command-input"
+                 placeholder="Enter command (e.g., diagnose CRAC-3)"
+                 disabled autocomplete="off"
+                 onkeydown="if(event.key==='Enter'&&!event.shiftKey)sendCommand()">
+          <button id="sendBtn" class="btn btn-primary" onclick="sendCommand()" disabled>Send</button>
+        </div>
+        <div class="quick-actions" id="quickActions">
+          <button class="quick-btn" disabled onclick="quickCmd('check_status')">check_status</button>
+          <button class="quick-btn" disabled onclick="quickCmd('diagnose CRAC-1')">diagnose CRAC-1</button>
+          <button class="quick-btn" disabled onclick="quickCmd('diagnose CRAC-3')">diagnose CRAC-3</button>
+          <button class="quick-btn" disabled onclick="quickCmd('acknowledge_alarm')">ack_alarm</button>
+          <button class="quick-btn" disabled onclick="quickCmd('start_generator')">start_gen</button>
+          <button class="quick-btn" disabled onclick="quickCmd('wait')">wait</button>
+          <button class="quick-btn" disabled onclick="quickCmd('escalate')">escalate</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Metrics Panel -->
+    <aside class="right-panel" id="right-panel">
+      <div class="panel-section">
+        <div class="panel-section-title">Episode</div>
+        <div class="episode-info">
+          <div class="episode-row">
+            <span class="label">Scenario</span>
+            <span class="value" id="metaScenario">--</span>
+          </div>
+          <div class="episode-row">
+            <span class="label">Step</span>
+            <span class="value"><span id="metaStep">0</span> / <span id="metaMaxSteps">--</span></span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="stepProgress" style="width:0%"></div>
+          </div>
+          <div class="episode-row">
+            <span class="label">Total Reward</span>
+            <span class="value" id="metaCumReward" style="color:var(--text)">0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-title">Key Metrics</div>
+        <div class="metrics-grid">
+          <div class="metric">
+            <div class="metric-label">PUE</div>
+            <div class="metric-value neutral" id="metricPUE">--</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">IT Load</div>
+            <div class="metric-value neutral" id="metricIT">--</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Cooling</div>
+            <div class="metric-value neutral" id="metricCooling">--</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Outside</div>
+            <div class="metric-value neutral" id="metricOutside">--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-title">Zone Temperatures</div>
+        <div class="zone-bars" id="zoneBars">
+          <div class="no-data">No data</div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-title">Power</div>
+        <div id="powerInfo">
+          <div class="no-data">No data</div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-title">Reward History</div>
+        <div class="reward-history" id="rewardHistory">
+          <div class="no-data">No steps yet</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────
+let selectedScenario = null;
+let episodeActive = false;
+let stepCount = 0;
+let maxSteps = 0;
+let cumulativeReward = 0;
+let rewardEntries = [];
+let isProcessing = false;
+const BASE_URL = window.location.origin;
+
+// ─── Scenario metadata ──────────────────────────────────────────────
+const SCENARIOS = {
+  A1: { name: 'Cooling Setpoint Optimization', type: 'thermal', diff: 'Easy' },
+  A2: { name: 'Thermal Event Response', type: 'thermal', diff: 'Medium' },
+  A4: { name: 'CRAC Failure Cascade', type: 'thermal', diff: 'Hard' },
+  B1: { name: 'UPS Alarm Response', type: 'power', diff: 'Medium' },
+  B3: { name: 'Generator Test Protocol', type: 'power', diff: 'Easy' },
+  B4: { name: 'Power Failure Cascade', type: 'power', diff: 'Hard' },
+};
+
+// ─── UI helpers ──────────────────────────────────────────────────────
+function selectScenario(id) {
+  if (episodeActive) return; // Don't change during active episode
+  selectedScenario = id;
+  document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+  const card = document.querySelector(`.scenario-card[data-id="${id}"]`);
+  if (card) card.classList.add('active');
+  const btn = document.getElementById('startBtn');
+  btn.disabled = false;
+  btn.textContent = `Start ${id}: ${SCENARIOS[id].name}`;
+}
+
+function togglePanel(id) {
+  const panel = document.getElementById(id);
+  panel.classList.toggle('collapsed');
+  const btnId = id === 'sidebar' ? 'toggleScenarios' : 'toggleMetrics';
+  document.getElementById(btnId).classList.toggle('active');
+}
+
+function setControlsEnabled(enabled) {
+  document.getElementById('commandInput').disabled = !enabled;
+  document.getElementById('sendBtn').disabled = !enabled;
+  document.querySelectorAll('.quick-btn').forEach(b => b.disabled = !enabled);
+}
+
+function quickCmd(cmd) {
+  if (!episodeActive || isProcessing) return;
+  document.getElementById('commandInput').value = cmd;
+  sendCommand();
+}
+
+function showActionResult(msg, type) {
+  const el = document.getElementById('actionResult');
+  el.style.display = 'block';
+  el.textContent = msg;
+  el.className = 'action-result ' + type;
+}
+
+function setStatus(state) {
+  const badge = document.getElementById('statusBadge');
+  const text = document.getElementById('statusText');
+  badge.className = 'status-badge ' + state;
+  text.textContent = state === 'connected' ? 'Connected' :
+                     state === 'loading' ? 'Loading...' : 'Disconnected';
+}
+
+// ─── Dashboard text parsing ──────────────────────────────────────────
+// Since OpenEnv's serialize_observation() excludes metadata,
+// we parse metrics directly from the dashboard text.
+
+function parseDashboard(dashboard) {
+  const metrics = {};
+
+  // PUE
+  const pueMatch = dashboard.match(/PUE:\s+([\d.]+)/);
+  if (pueMatch) metrics.pue = parseFloat(pueMatch[1]);
+
+  // IT Load
+  const itMatch = dashboard.match(/IT Load:\s+([\d.]+)\s*kW/);
+  if (itMatch) metrics.itLoad = parseFloat(itMatch[1]);
+
+  // Cooling
+  const coolMatch = dashboard.match(/Cooling:\s+([\d.]+)\s*kW/);
+  if (coolMatch) metrics.cooling = parseFloat(coolMatch[1]);
+
+  // Outside temp
+  const outMatch = dashboard.match(/Outside:\s+([\d.]+)°C/);
+  if (outMatch) metrics.outside = parseFloat(outMatch[1]);
+
+  // Zone temperatures
+  // Format: zone_x       19.8°C     30.8°C     19.8°C    80.0     A2
+  metrics.zones = [];
+  const zoneRegex = /(zone_\w+)\s+([\d.]+)°C\s+([\d.]+)°C\s+([\d.]+)°C/g;
+  let zm;
+  while ((zm = zoneRegex.exec(dashboard)) !== null) {
+    metrics.zones.push({
+      id: zm[1],
+      cold: parseFloat(zm[2]),
+      hot: parseFloat(zm[3]),
+      inlet: parseFloat(zm[4])
+    });
+  }
+
+  // Power info
+  const utilMatch = dashboard.match(/Utility:\s+(\w+)/);
+  if (utilMatch) metrics.utility = utilMatch[1];
+
+  const genMatch = dashboard.match(/Gen:\s+([^\n|]+)/);
+  if (genMatch) metrics.generator = genMatch[1].trim();
+
+  const atsMatch = dashboard.match(/ATS:\s+(\w+)/);
+  if (atsMatch) metrics.ats = atsMatch[1];
+
+  // UPS info - capture UPS lines
+  const upsMatch = dashboard.match(/UPS:\s+(.+)/);
+  if (upsMatch) metrics.ups = upsMatch[1].trim();
+
+  return metrics;
+}
+
+// ─── API calls ───────────────────────────────────────────────────────
+async function apiPost(path, body = {}) {
+  const resp = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`HTTP ${resp.status}: ${errText}`);
+  }
+  return resp.json();
+}
+
+// ─── Start episode ───────────────────────────────────────────────────
+async function startEpisode() {
+  if (!selectedScenario || isProcessing) return;
+  isProcessing = true;
+  const btn = document.getElementById('startBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Starting...';
+  setStatus('loading');
+
+  try {
+    // Reset endpoint accepts extra kwargs (scenario is passed through to env.reset())
+    const data = await apiPost('/reset', { scenario: selectedScenario });
+    setStatus('connected');
+    episodeActive = true;
+    stepCount = 0;
+    cumulativeReward = 0;
+    rewardEntries = [];
+
+    processResponse(data);
+
+    setControlsEnabled(true);
+    document.getElementById('startBtn').style.display = 'none';
+    document.getElementById('resetBtn').style.display = 'block';
+    document.getElementById('doneBanner').classList.remove('show');
+    document.getElementById('rewardHistory').innerHTML = '<div class="no-data">No steps yet</div>';
+    document.getElementById('actionResult').style.display = 'none';
+
+    // Update scenario display
+    const info = SCENARIOS[selectedScenario];
+    document.getElementById('metaScenario').textContent = `${selectedScenario} - ${info.name}`;
+
+  } catch (e) {
+    setStatus('disconnected');
+    showActionResult('Failed to start: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = `Start ${selectedScenario}: ${SCENARIOS[selectedScenario].name}`;
+  } finally {
+    isProcessing = false;
+  }
+}
+
+// ─── Reset episode ───────────────────────────────────────────────────
+function resetEpisode() {
+  episodeActive = false;
+  setControlsEnabled(false);
+  document.getElementById('startBtn').style.display = 'block';
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('startBtn').textContent =
+    selectedScenario ? `Start ${selectedScenario}: ${SCENARIOS[selectedScenario].name}` : 'Select a Scenario';
+  document.getElementById('resetBtn').style.display = 'none';
+  document.getElementById('doneBanner').classList.remove('show');
+  document.getElementById('terminalTitle').textContent = 'dc-ops-console';
+}
+
+// ─── Send command ────────────────────────────────────────────────────
+async function sendCommand() {
+  const input = document.getElementById('commandInput');
+  const cmd = input.value.trim();
+  if (!cmd || !episodeActive || isProcessing) return;
+
+  input.value = '';
+  isProcessing = true;
+  setControlsEnabled(false);
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = false; // Keep send btn visible but show spinner
+  sendBtn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    // OpenEnv step endpoint requires: { "action": { ...action_fields... } }
+    const data = await apiPost('/step', {
+      action: { command: cmd, reasoning: '' }
+    });
+    stepCount++;
+    processResponse(data, cmd);
+  } catch (e) {
+    showActionResult('Error: ' + e.message, 'error');
+  } finally {
+    isProcessing = false;
+    sendBtn.textContent = 'Send';
+    if (episodeActive) {
+      setControlsEnabled(true);
+      input.focus();
+    }
+  }
+}
+
+// ─── Process API response ────────────────────────────────────────────
+function processResponse(data, command = null) {
+  // Response format: { observation: {...}, reward: float|null, done: bool }
+  const obs = data.observation || {};
+  const reward = data.reward || 0;
+  const done = data.done || false;
+
+  // ── Dashboard display ──
+  const dashEl = document.getElementById('dashboardOutput');
+  const dashboard = obs.dashboard || '';
+  if (dashboard) {
+    dashEl.textContent = dashboard;
+  }
+
+  // Auto-scroll dashboard to bottom
+  const container = document.getElementById('dashboardContainer');
+  container.scrollTop = container.scrollHeight;
+
+  // ── Action result ──
+  if (obs.action_result && command) {
+    const isErr = /error|invalid|unknown|unrecognized|fail/i.test(obs.action_result);
+    showActionResult(obs.action_result, isErr ? 'error' : 'success');
+  }
+
+  // ── Parse metrics from dashboard text ──
+  const metrics = parseDashboard(dashboard);
+
+  // ── Steps ──
+  const stepsRemaining = obs.steps_remaining || 0;
+  maxSteps = stepsRemaining + stepCount;
+  document.getElementById('metaStep').textContent = stepCount;
+  document.getElementById('metaMaxSteps').textContent = maxSteps;
+
+  const pct = maxSteps > 0 ? (stepCount / maxSteps) * 100 : 0;
+  const progEl = document.getElementById('stepProgress');
+  progEl.style.width = pct + '%';
+  progEl.className = 'progress-fill ' + (pct < 50 ? 'low' : pct < 80 ? 'mid' : 'high');
+
+  // ── Cumulative reward ──
+  cumulativeReward += reward;
+  const cumEl = document.getElementById('metaCumReward');
+  cumEl.textContent = cumulativeReward.toFixed(2);
+  cumEl.style.color = cumulativeReward > 0 ? 'var(--green)' : cumulativeReward < -0.5 ? 'var(--red)' : 'var(--text)';
+
+  // ── Key metrics from parsed dashboard ──
+  if (metrics.pue !== undefined) {
+    const el = document.getElementById('metricPUE');
+    el.textContent = metrics.pue.toFixed(2);
+    el.className = 'metric-value ' + (metrics.pue < 1.5 ? 'good' : metrics.pue < 1.8 ? 'warn' : 'danger');
+  }
+  if (metrics.itLoad !== undefined) {
+    document.getElementById('metricIT').textContent = metrics.itLoad.toFixed(0) + ' kW';
+    document.getElementById('metricIT').className = 'metric-value neutral';
+  }
+  if (metrics.cooling !== undefined) {
+    document.getElementById('metricCooling').textContent = metrics.cooling.toFixed(0) + ' kW';
+    document.getElementById('metricCooling').className = 'metric-value neutral';
+  }
+  if (metrics.outside !== undefined) {
+    document.getElementById('metricOutside').textContent = metrics.outside.toFixed(0) + '°C';
+    document.getElementById('metricOutside').className = 'metric-value neutral';
+  }
+
+  // ── Zone temperature bars ──
+  if (metrics.zones && metrics.zones.length > 0) {
+    updateZoneBars(metrics.zones);
+  }
+
+  // ── Power info ──
+  updatePowerInfo(metrics);
+
+  // ── Reward history ──
+  if (command) {
+    rewardEntries.push({ step: stepCount, cmd: command, reward: reward });
+    updateRewardHistory();
+  }
+
+  // ── Terminal title ──
+  document.getElementById('terminalTitle').textContent =
+    `dc-ops — ${selectedScenario} — step ${stepCount}/${maxSteps}`;
+
+  // ── Episode done ──
+  if (done) {
+    episodeActive = false;
+    setControlsEnabled(false);
+    const banner = document.getElementById('doneBanner');
+    banner.classList.add('show');
+    const alert = obs.alert || '';
+    if (alert.toLowerCase().includes('resolved') || alert.toLowerCase().includes('success') ||
+        alert.toLowerCase().includes('complete')) {
+      banner.className = 'episode-done-banner show resolved';
+      banner.textContent = 'Scenario Resolved Successfully';
+    } else if (alert.toLowerCase().includes('critical') || alert.toLowerCase().includes('emergency') ||
+               alert.toLowerCase().includes('shutdown')) {
+      banner.className = 'episode-done-banner show failed';
+      banner.textContent = 'Episode Ended — Critical Failure';
+    } else {
+      banner.className = 'episode-done-banner show timeout';
+      banner.textContent = `Episode Ended — ${stepCount >= maxSteps ? 'Budget exhausted' : 'Terminated'}`;
+    }
+  }
+}
+
+// ─── Zone bars ───────────────────────────────────────────────────────
+function updateZoneBars(zones) {
+  const container = document.getElementById('zoneBars');
+  container.innerHTML = '';
+  for (const z of zones) {
+    const temp = z.inlet;
+    // Scale: 15°C → 0%, 45°C → 100%
+    const pct = Math.max(0, Math.min(100, ((temp - 15) / 30) * 100));
+    const cls = temp <= 27 ? 'safe' : temp <= 35 ? 'warning' : 'critical';
+    const colorVar = cls === 'safe' ? '--green' : cls === 'warning' ? '--yellow' : '--red';
+    const label = z.id.replace('zone_', '').toUpperCase();
+    const row = document.createElement('div');
+    row.className = 'zone-bar-row';
+    row.innerHTML = `
+      <span class="zone-bar-label">${label}</span>
+      <div class="zone-bar-track">
+        <div class="zone-bar-fill ${cls}" style="width:${pct}%"></div>
+      </div>
+      <span class="zone-bar-value" style="color:var(${colorVar})">${temp.toFixed(1)}°C</span>`;
+    container.appendChild(row);
+  }
+}
+
+// ─── Power info ──────────────────────────────────────────────────────
+function updatePowerInfo(metrics) {
+  const container = document.getElementById('powerInfo');
+  let html = '';
+
+  if (metrics.utility) {
+    const cls = metrics.utility === 'NORMAL' ? 'ok' : 'bad';
+    html += `<div class="power-row"><span class="pw-label">Utility</span><span class="pw-val ${cls}">${metrics.utility}</span></div>`;
+  }
+  if (metrics.generator) {
+    const cls = metrics.generator.startsWith('OFF') ? 'ok' :
+                metrics.generator.startsWith('LOADED') ? 'warn' : 'warn';
+    html += `<div class="power-row"><span class="pw-label">Generator</span><span class="pw-val ${cls}">${metrics.generator}</span></div>`;
+  }
+  if (metrics.ats) {
+    const cls = metrics.ats === 'UTILITY' ? 'ok' : 'warn';
+    html += `<div class="power-row"><span class="pw-label">ATS</span><span class="pw-val ${cls}">${metrics.ats}</span></div>`;
+  }
+  if (metrics.ups) {
+    // Split UPS entries by |
+    const parts = metrics.ups.split('|').map(s => s.trim()).filter(Boolean);
+    for (const p of parts) {
+      const hasBattery = /BATTERY/i.test(p);
+      const hasFault = /FAULT/i.test(p);
+      const cls = hasFault ? 'bad' : hasBattery ? 'warn' : 'ok';
+      html += `<div class="power-row"><span class="pw-label">UPS</span><span class="pw-val ${cls}">${p}</span></div>`;
+    }
+  }
+
+  container.innerHTML = html || '<div class="no-data">No data</div>';
+}
+
+// ─── Reward history ──────────────────────────────────────────────────
+function updateRewardHistory() {
+  const container = document.getElementById('rewardHistory');
+  container.innerHTML = '';
+  // Show most recent first
+  for (let i = rewardEntries.length - 1; i >= 0; i--) {
+    const e = rewardEntries[i];
+    const cls = e.reward > 0.005 ? 'pos' : e.reward < -0.005 ? 'neg' : 'zero';
+    const sign = e.reward >= 0 ? '+' : '';
+    const div = document.createElement('div');
+    div.className = 'reward-entry';
+    div.innerHTML = `
+      <span class="step">${e.step}</span>
+      <span class="cmd" title="${e.cmd}">${e.cmd}</span>
+      <span class="rew ${cls}">${sign}${e.reward.toFixed(3)}</span>`;
+    container.appendChild(div);
+  }
+}
+
+// ─── Health check ────────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const resp = await fetch(`${BASE_URL}/health`);
+    if (resp.ok) setStatus('connected');
+    else setStatus('disconnected');
+  } catch (e) {
+    setStatus('disconnected');
+  }
+}
+
+// ─── Init ────────────────────────────────────────────────────────────
+checkHealth();
+</script>
+</body>
+</html>
