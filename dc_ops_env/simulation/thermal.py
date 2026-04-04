@@ -303,8 +303,12 @@ class ThermalSimulation:
             #
             # (a) Containment recirculation: fraction r of air leaks through
             #     containment gaps regardless of CRAC flow balance.
+            #     Uses max(m_dot_rack, m_dot_crac) — recirculation is driven
+            #     by pressure differentials from whichever airflow is dominant.
+            #     When CRACs are off, server fans still drive leakage.
             r = zone.recirculation_factor
-            q_recirc_w = r * m_dot_crac * AIR_SPECIFIC_HEAT_J_KGK * dt_server
+            m_dot_dominant = max(m_dot_rack, m_dot_crac)
+            q_recirc_w = r * m_dot_dominant * AIR_SPECIFIC_HEAT_J_KGK * dt_server
 
             # (b) Natural return: when CRAC airflow < rack airflow, servers
             #     exhaust more hot air than CRACs can capture. The uncaptured

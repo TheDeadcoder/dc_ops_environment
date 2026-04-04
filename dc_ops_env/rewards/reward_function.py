@@ -15,7 +15,7 @@ Research-informed design:
   - Scenario-type-aware weight profiles
 
 All components are bounded to [-1, 1]. Total reward is the weighted sum,
-clamped to [-1, 1]. Speed bonus at resolution is additive on top.
+clamped to [-1, 1].
 """
 
 from __future__ import annotations
@@ -117,6 +117,12 @@ _ALPHA_ALLOWABLE = 1.5     # °C transition width at allowable limit
 _ALLOWABLE_WEIGHT = 3.0    # Allowable violations 3x worse per degree
 _THERMAL_NORM = 8.0        # Normalization so T=40°C (A2) → R≈-0.97
 
+# Thermal safety positive baseline — small reward for being well within limits
+# Based on DCRL-Green (ICLR 2025): agents learn faster with a positive signal
+# for maintaining safe state, not just penalties for violations.
+_SAFE_MARGIN_C = 3.0       # °C below recommended max to qualify as "safe"
+_SAFE_BASELINE = 0.1       # Small positive reward when all zones safe
+
 # Power barriers
 _SOC_THRESHOLD = 0.5       # Concern increases below 50% SOC
 _SOC_ALPHA = 0.15          # Sharp transition around threshold
@@ -125,6 +131,9 @@ _POWER_NORM = 4.0          # Normalization constant
 
 # Efficiency
 _PUE_NORM = 2.0            # PUE sensitivity: PUE=3.0 → R≈-0.76
+
+# Action quality
+_REPEAT_WHITELIST = frozenset({"wait", "check_status"})
 
 
 # ---------------------------------------------------------------------------
@@ -148,6 +157,7 @@ class RewardFunction:
         scenario_type: str = "default",
         weights: Optional[RewardWeights] = None,
     ) -> None:
+        self._scenario_type = scenario_type
         self._weights = weights or WEIGHT_PROFILES.get(
             scenario_type, WEIGHT_PROFILES["default"]
         )
@@ -169,12 +179,11 @@ class RewardFunction:
         """Compute all reward components and weighted total.
 
         Returns RewardComponents with per-component values and total.
-        Total is clamped to [-1, 1].  Speed bonus is NOT included here —
-        it is added by the environment on the resolution step.
+        Total is clamped to [-1, 1].
         """
         r_thermal = self._thermal_safety(thermal_sim)
         r_power = self._power_safety(power_sim)
-        r_efficiency = self._efficiency(thermal_sim)
+        r_efficiency = self._efficiency(thermal_sim, power_sim)
         r_progress = self._scenario_progress(scenario_result)
         r_procedure = self._procedure(scenario_result)
         r_action = self._action_quality(
@@ -211,9 +220,14 @@ class RewardFunction:
     def _thermal_safety(thermal_sim: ThermalSimulation) -> float:
         """ASHRAE compliance via dual softplus barriers.
 
-        Returns value in [-1, 0].
+        Returns value in [-1, _SAFE_BASELINE].
         Two barriers per zone: recommended (gentle) and allowable (steep).
         Averaged across zones so the signal is independent of zone count.
+
+        Positive baseline (+0.1) when ALL zones are well within safe range
+        (>= _SAFE_MARGIN_C below recommended max). This provides gradient
+        signal for maintaining good state, not just avoiding violations.
+        (Informed by DCRL-Green, ICLR 2025.)
         """
         zones = thermal_sim.state.zones
         if not zones:
@@ -221,6 +235,7 @@ class RewardFunction:
 
         n_zones = len(zones)
         penalty = 0.0
+        all_safe = True
 
         for zone in zones:
             ashrae = ASHRAE_CLASSES.get(zone.ashrae_class)
@@ -231,6 +246,10 @@ class RewardFunction:
             rec_max = ashrae.recommended_max_c
             allow_max = ashrae.allowable_max_c
 
+            # Check if zone is well within safe range
+            if t > rec_max - _SAFE_MARGIN_C:
+                all_safe = False
+
             # Soft barrier at recommended limit
             penalty += softplus((t - rec_max) / _ALPHA_RECOMMENDED) / n_zones
             # Harder barrier at allowable limit
@@ -239,6 +258,9 @@ class RewardFunction:
                 * softplus((t - allow_max) / _ALPHA_ALLOWABLE)
                 / n_zones
             )
+
+        if penalty < 1e-6 and all_safe:
+            return _SAFE_BASELINE
 
         return -math.tanh(penalty / _THERMAL_NORM)
 
@@ -262,12 +284,25 @@ class RewardFunction:
         return -math.tanh(penalty / _POWER_NORM)
 
     @staticmethod
-    def _efficiency(thermal_sim: ThermalSimulation) -> float:
+    def _efficiency(
+        thermal_sim: ThermalSimulation,
+        power_sim: Optional[PowerSimulation],
+    ) -> float:
         """PUE-based energy efficiency penalty.
 
         Returns value in [-1, 0].
         PUE 1.0 (ideal) → 0, PUE 2.0 → -0.46, PUE 3.0 → -0.76.
+
+        During power emergencies (UPS on battery), efficiency is suppressed
+        to zero — the agent should not be penalized for load shedding that
+        increases PUE but correctly preserves battery life.
         """
+        # Suppress efficiency signal during power emergencies
+        if power_sim is not None:
+            for ups in power_sim.state.ups_units:
+                if ups.mode in (UPSMode.ON_BATTERY, UPSMode.FAULT):
+                    return 0.0
+
         pue = thermal_sim.state.pue
         return -math.tanh((pue - 1.0) / _PUE_NORM)
 
@@ -313,25 +348,32 @@ class RewardFunction:
         if not cmd_result.success:
             return -0.5
 
-        # Check for exact repeated command
         cmd_lower = action_command.strip().lower()
-        prior = (
-            [h.strip().lower() for h in action_history[:-1]]
-            if len(action_history) > 1
-            else []
-        )
-        if cmd_lower in prior:
-            return -0.2
-
         name = cmd_result.command_name
+
+        # Check for exact repeated command — but whitelist commands that
+        # are legitimately repeatable (wait, check_status).
+        if name not in _REPEAT_WHITELIST:
+            prior = (
+                [h.strip().lower() for h in action_history[:-1]]
+                if len(action_history) > 1
+                else []
+            )
+            if cmd_lower in prior:
+                return -0.2
 
         # "wait" quality depends on whether there's an active concern
         if name == "wait":
             if _has_active_concern(thermal_sim, power_sim):
-                return -0.2  # Waiting during a problem
+                # Waiting during a power event where we're waiting for
+                # generator startup is acceptable — check if generator
+                # is in startup sequence.
+                if power_sim is not None and _generator_starting(power_sim):
+                    return 0.1  # Waiting for gen to warm up is reasonable
+                return -0.2  # Waiting during a thermal problem
             return 0.0  # Nothing wrong, waiting is fine
 
-        # Information-gathering actions are always valuable
+        # Information-gathering actions are valuable
         if name in ("diagnose", "check_status"):
             return 0.3
 
@@ -346,6 +388,11 @@ class RewardFunction:
         # Administrative
         if name == "acknowledge_alarm":
             return 0.1
+
+        # Escalation — handled solely by scenario procedure rules now,
+        # no extra penalty here. The environment no longer double-penalizes.
+        if name == "escalate":
+            return -0.1
 
         return 0.1  # Other valid commands
 
@@ -369,3 +416,13 @@ def _has_active_concern(
                 return True
 
     return False
+
+
+def _generator_starting(power_sim: PowerSimulation) -> bool:
+    """Check if the generator is in a startup sequence (agent should wait)."""
+    from ..simulation.types import GeneratorState
+    return power_sim.state.generator.state in (
+        GeneratorState.START_DELAY,
+        GeneratorState.CRANKING,
+        GeneratorState.WARMING,
+    )

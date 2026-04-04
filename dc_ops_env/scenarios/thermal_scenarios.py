@@ -166,6 +166,9 @@ class ThermalEventResponse(Scenario):
         super().__init__()
         self._stable_count = 0
 
+    def reset_state(self) -> None:
+        self._stable_count = 0
+
     def configure(self, base_config: DatacenterConfig) -> DatacenterConfig:
         return base_config  # Default config is fine
 
@@ -304,6 +307,9 @@ class CRACFailureCascade(Scenario):
 
     def __init__(self) -> None:
         super().__init__()
+        self._stable_count = 0
+
+    def reset_state(self) -> None:
         self._stable_count = 0
 
     def configure(self, base_config: DatacenterConfig) -> DatacenterConfig:

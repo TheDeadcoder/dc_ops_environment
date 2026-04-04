@@ -264,14 +264,14 @@ class TestEfficiency:
     def test_low_pue_near_zero_penalty(self) -> None:
         """PUE close to 1.0 should yield near-zero penalty."""
         thermal_sim = _make_thermal_sim(20.0)
-        r = RewardFunction._efficiency(thermal_sim)
+        r = RewardFunction._efficiency(thermal_sim, None)
         pue = thermal_sim.state.pue
         # PUE is typically 1.4-1.8 in our sim, so some penalty is expected
         assert -0.5 <= r <= 0.0
 
     def test_returns_negative_or_zero(self) -> None:
         thermal_sim = _make_thermal_sim(20.0)
-        r = RewardFunction._efficiency(thermal_sim)
+        r = RewardFunction._efficiency(thermal_sim, None)
         assert r <= 0.0
 
     def test_bounded(self) -> None:
@@ -279,7 +279,7 @@ class TestEfficiency:
         thermal_sim = _make_thermal_sim(15.0)
         # Force extreme PUE by manipulating state
         thermal_sim.state._pue = 5.0
-        r = RewardFunction._efficiency(thermal_sim)
+        r = RewardFunction._efficiency(thermal_sim, None)
         assert -1.0 <= r <= 0.0
 
 
@@ -406,13 +406,25 @@ class TestActionQuality:
         assert r == pytest.approx(0.1)
 
     def test_repeated_command_penalized(self) -> None:
+        """Repeated non-whitelisted command should be penalized."""
+        thermal_sim = _make_thermal_sim()
+        # Use adjust_setpoint (not whitelisted) instead of check_status
+        history = ["adjust_setpoint CRAC-1 20", "adjust_setpoint CRAC-1 20"]
+        r = RewardFunction._action_quality(
+            _ok_cmd("adjust_setpoint"), "adjust_setpoint CRAC-1 20", history,
+            thermal_sim, None,
+        )
+        assert r == pytest.approx(-0.2)
+
+    def test_repeated_whitelisted_not_penalized(self) -> None:
+        """Repeated check_status/wait should NOT be penalized."""
         thermal_sim = _make_thermal_sim()
         history = ["check_status", "check_status"]
         r = RewardFunction._action_quality(
             _ok_cmd("check_status"), "check_status", history,
             thermal_sim, None,
         )
-        assert r == pytest.approx(-0.2)
+        assert r == pytest.approx(0.3)  # Still gets diagnose/check_status bonus
 
     def test_wait_no_concern_neutral(self) -> None:
         """Waiting when nothing is wrong should be neutral (0.0)."""
@@ -436,12 +448,26 @@ class TestActionQuality:
         )
         assert r == pytest.approx(-0.2)
 
-    def test_wait_during_battery_concern(self) -> None:
-        """Waiting while UPS on battery should be penalized."""
+    def test_wait_during_battery_with_gen_starting(self) -> None:
+        """Waiting while UPS on battery but generator starting is acceptable."""
         thermal_sim = _make_thermal_sim(20.0)
         power_sim = _make_power_sim(utility_available=False)
+        # Generator should be in startup sequence (auto-started by ATS)
         r = RewardFunction._action_quality(
             _ok_cmd("wait"), "wait", ["wait"], thermal_sim, power_sim,
+        )
+        assert r == pytest.approx(0.1)  # Waiting for gen warmup is reasonable
+
+    def test_wait_during_thermal_concern_penalized(self) -> None:
+        """Waiting during a thermal concern (no power issue) is penalized."""
+        thermal_sim = _make_thermal_sim(20.0)
+        for zone in thermal_sim.state.zones:
+            ashrae = ASHRAE_CLASSES.get(zone.ashrae_class)
+            if ashrae:
+                for rack in zone.racks:
+                    rack.inlet_temp_c = ashrae.recommended_max_c + 2.0
+        r = RewardFunction._action_quality(
+            _ok_cmd("wait"), "wait", ["wait"], thermal_sim, None,
         )
         assert r == pytest.approx(-0.2)
 
@@ -572,15 +598,22 @@ class TestRewardIntegration:
         assert obs.reward != 0.0  # Should have some signal
 
     def test_escalation_has_penalty(self) -> None:
-        """Escalation should add a -0.3 penalty on top of base reward."""
+        """Escalation should be penalized relative to a normal action."""
         from dc_ops_env.server.dc_ops_env_environment import DcOpsEnvironment
         from dc_ops_env.models import DcOpsAction
 
-        env = DcOpsEnvironment()
-        env.reset(scenario="A2")
-        obs = env.step(DcOpsAction(command="escalate"))
-        assert obs.done is True
-        assert obs.reward < 0  # Should be negative due to penalty
+        # Get reward for a normal first action
+        env1 = DcOpsEnvironment()
+        env1.reset(scenario="A2")
+        obs_normal = env1.step(DcOpsAction(command="check_status"))
+
+        # Get reward for escalation
+        env2 = DcOpsEnvironment()
+        env2.reset(scenario="A2")
+        obs_esc = env2.step(DcOpsAction(command="escalate"))
+        assert obs_esc.done is True
+        # Escalation should yield less reward than a check_status
+        assert obs_esc.reward < obs_normal.reward
 
     def test_scenario_resolution_has_speed_bonus(self) -> None:
         """Resolving a scenario early should yield a speed bonus."""

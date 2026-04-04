@@ -144,6 +144,10 @@ class DcOpsEnvironment(Environment):
         else:
             self._scenario = None
 
+        # Reset scenario mutable state (counters, flags) for episode reuse
+        if self._scenario:
+            self._scenario.reset_state()
+
         # Configuration — scenario can modify the base config
         # Support config_name (string) from JSON APIs, or config (DatacenterConfig) from Python
         config_arg = kwargs.get("config")
@@ -244,13 +248,13 @@ class DcOpsEnvironment(Environment):
                     action.command, self._action_history,
                     self._state.step_count,
                 )
-            # Compute base reward components
+            # Compute base reward components — escalation penalty is handled
+            # by scenario procedure rules + action_quality, not doubled here
             components = self._reward_fn.compute(
                 self._thermal_sim, self._power_sim, cmd_result,
                 action.command, self._action_history, scenario_result,
             )
-            # Escalation penalty on top of base reward
-            reward = components.total - 0.3
+            reward = components.total
             self._cumulative_reward += reward
             return self._make_observation(
                 action_result=cmd_result.message,

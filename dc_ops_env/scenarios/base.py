@@ -86,6 +86,14 @@ class Scenario(ABC):
         Return the base_config unchanged if no modifications needed.
         """
 
+    def reset_state(self) -> None:
+        """Reset mutable episode state between episodes.
+
+        Called by the environment at the start of each episode, before
+        configure() / inject_fault(). Subclasses with mutable state
+        (counters, flags) MUST override this and reset them.
+        """
+
     @abstractmethod
     def inject_fault(
         self,

@@ -54,6 +54,10 @@ class UPSAlarmResponse(Scenario):
         self._diagnosed_ups = False
         self._acknowledged = False
 
+    def reset_state(self) -> None:
+        self._diagnosed_ups = False
+        self._acknowledged = False
+
     def configure(self, base_config: DatacenterConfig) -> DatacenterConfig:
         return base_config
 
@@ -176,6 +180,12 @@ class GeneratorTestProtocol(Scenario):
 
     def __init__(self) -> None:
         super().__init__()
+        self._started = False
+        self._verified = False
+        self._stopped = False
+        self._completed = False
+
+    def reset_state(self) -> None:
         self._started = False
         self._verified = False
         self._stopped = False
@@ -339,6 +349,9 @@ class PowerFailureCascade(Scenario):
 
     def __init__(self) -> None:
         super().__init__()
+        self._stable_count = 0
+
+    def reset_state(self) -> None:
         self._stable_count = 0
 
     def configure(self, base_config: DatacenterConfig) -> DatacenterConfig:

@@ -62,19 +62,20 @@ WORKDIR /app
 # Copy the virtual environment from builder
 COPY --from=builder /app/env/.venv /app/.venv
 
-# Copy the environment code
-COPY --from=builder /app/env /app/env
+# Copy the environment code — directory name MUST match package name
+# so that relative imports (from ..config, from ..simulation, etc.) resolve correctly
+COPY --from=builder /app/env /app/dc_ops_env
 
 # Set PATH to use the virtual environment
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Set PYTHONPATH so imports work correctly
-ENV PYTHONPATH="/app/env:$PYTHONPATH"
+# Set PYTHONPATH so dc_ops_env is discoverable as a proper package
+ENV PYTHONPATH="/app:$PYTHONPATH"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the FastAPI server
-# The module path is constructed to work with the /app/env structure
-CMD ["sh", "-c", "cd /app/env && uvicorn server.app:app --host 0.0.0.0 --port 8000"]
+# Run the FastAPI server using the venv's Python to ensure correct dependencies
+# Fully-qualified module path ensures dc_ops_env is the top-level package
+CMD ["/app/.venv/bin/python", "-m", "uvicorn", "dc_ops_env.server.app:app", "--host", "0.0.0.0", "--port", "8000"]

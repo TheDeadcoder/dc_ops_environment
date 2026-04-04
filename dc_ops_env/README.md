@@ -38,7 +38,7 @@ cd dc_ops_env
 # Install dependencies
 uv sync
 
-# Run the test suite (254 tests, <10s)
+# Run the test suite (256 tests, <10s)
 uv run pytest tests/ -v
 
 # Start the server
@@ -400,7 +400,7 @@ async with DcOpsEnv(base_url=space_url) as env:
 ### Running Tests
 
 ```bash
-# All tests (254 tests)
+# All tests (256 tests)
 uv run pytest tests/ -v
 
 # Specific test modules
@@ -485,7 +485,7 @@ dc_ops_env/
 │       ├── default.yaml            # 2 zones, 20 racks, 160 kW
 │       ├── small_facility.yaml     # 1 zone, 10 racks, 80 kW
 │       └── large_facility.yaml     # 4 zones, 60 racks, 600 kW
-└── tests/                          # 254 tests across 6 modules
+└── tests/                          # 256 tests across 6 modules
     ├── test_thermal.py
     ├── test_power.py
     ├── test_actions.py

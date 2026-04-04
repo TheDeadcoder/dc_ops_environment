@@ -41,5 +41,10 @@ server = "dc_ops_env.server.app:main"
 
 [tool.setuptools]
 include-package-data = true
-packages = ["dc_ops_env", "dc_ops_env.server"]
-package-dir = { "dc_ops_env" = ".", "dc_ops_env.server" = "server" }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["dc_ops_env*"]
+
+[tool.setuptools.package-dir]
+dc_ops_env = "."

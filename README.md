@@ -84,7 +84,7 @@ dc_ops_env/
 │       ├── default.yaml           # 2 zones, 20 racks, 160 kW
 │       ├── small_facility.yaml    # 1 zone, 10 racks, 80 kW
 │       └── large_facility.yaml    # 4 zones, 60 racks, 600 kW (mixed A2+H1)
-└── tests/                         # 254 tests across 6 files
+└── tests/                         # 256 tests across 6 files
 ```
 
 ---
@@ -112,7 +112,7 @@ Where:
 - Fan power: cubic law (affinity laws) — `P_fan = P_rated × (speed%)³`
 - COP degradation with outside temperature
 - Supply temperature lag (30s time constant)
-- Recirculation: `T_cold_actual = (1−r)·T_supply + r·T_hot`, r configurable per zone
+- Recirculation: `q_recirc = r · max(m_dot_rack, m_dot_crac) · c_p · ΔT`, driven by dominant airflow (leakage persists even when CRACs are off)
 
 **Validated behaviors:**
 | Scenario | Expected | Actual |
@@ -153,12 +153,12 @@ A **6-component, research-informed** reward function with scenario-type-aware we
 
 | Component | Range | Method | Source |
 |-----------|-------|--------|--------|
-| Thermal safety | [-1, 0] | Dual softplus barriers at ASHRAE recommended + allowable limits | Google/DeepMind 2017, ICLR 2025 |
+| Thermal safety | [-1, 0.1] | Dual softplus barriers + positive baseline when all zones safe | Google/DeepMind 2017, ICLR 2025, DCRL-Green |
 | Power safety | [-1, 0] | UPS SOC softplus barrier + fault penalty | Novel |
-| Efficiency | [-1, 0] | `−tanh((PUE−1)/2)` | DCRL-Green |
+| Efficiency | [-1, 0] | `−tanh((PUE−1)/2)`, suppressed during power emergencies | DCRL-Green |
 | Scenario progress | [-1, 1] | Delta-based (rewards the step that caused progress change) | Process reward models |
 | Procedure | [-1, 1] | Rule-based: diagnose before repair, etc. | Operations research |
-| Action quality | [-1, 1] | Invalid penalty, repeat penalty, diagnosis bonus, context-aware wait | Novel |
+| Action quality | [-1, 1] | Invalid penalty, context-aware repeat/wait, diagnosis bonus | Novel |
 
 **Weight profiles** adjust emphasis by scenario type:
 
@@ -168,13 +168,21 @@ A **6-component, research-informed** reward function with scenario-type-aware we
 | Power | 0.10 | 0.25 | 0.05 | 0.30 | 0.25 | 0.05 |
 | Default | 0.30 | 0.15 | 0.25 | 0.00 | 0.00 | 0.30 |
 
-**Key design decision — softplus barriers:**
+**Key design decisions:**
+
+*Softplus barriers (Google/DeepMind 2017, DCRL-Green ICLR 2025):*
 ```python
 penalty += softplus((T − T_recommended) / α_rec)    # Gentle barrier
 penalty += 3.0 · softplus((T − T_allowable) / α_allow)  # Steep barrier
-reward = −tanh(penalty / 8.0)                         # Bounded [-1, 0]
+reward = −tanh(penalty / 8.0)                         # Bounded [-1, 0.1]
 ```
 Unlike hard thresholds, softplus provides gradient signal *near* limits, enabling the agent to learn preventive behavior rather than only reacting after violations.
+
+*Positive safe-state baseline (DCRL-Green):* When all zones are well within safe range (>3°C below recommended max), thermal safety returns +0.1. This gives the model a positive signal for *maintaining* good state, not just penalty avoidance.
+
+*Power-emergency efficiency suppression:* During UPS-on-battery or fault conditions, the efficiency component returns 0 instead of penalizing load shedding that raises PUE but correctly preserves battery life.
+
+*Context-aware action quality:* `wait` and `check_status` are exempt from the repeat penalty (legitimately repeatable). Waiting during generator startup yields a small positive signal (+0.1) instead of penalty.
 
 ---
 
@@ -211,7 +219,7 @@ Each scenario defines:
 | Feature | DC-Ops | CoolSim / EnergyPlus | Gymnasium DC envs | Custom RL envs |
 |---------|--------|---------------------|-------------------|----------------|
 | **Physics fidelity** | RC thermal + quadratic UPS + generator FSM | High (CFD-level) | Simplified or lookup-based | Varies |
-| **Speed** | <1ms/step, 254 tests in <10s | Minutes per step | Fast but less accurate | Varies |
+| **Speed** | <1ms/step, 256 tests in <10s | Minutes per step | Fast but less accurate | Varies |
 | **LLM-native** | Text dashboard + NL commands | Numeric API | Numeric API | Numeric API |
 | **Multi-subsystem** | Thermal + Power + Cooling | Thermal only | Thermal only | Usually single |
 | **Procedural reward** | Built-in diagnose-before-fix rules | None | None | None |
@@ -257,7 +265,7 @@ The large facility config includes an **H1 zone** with 20 kW/rack GPU servers �
 cd dc_ops_env
 uv sync
 
-# Run tests (254 tests, <10s)
+# Run tests (256 tests, <10s)
 uv run pytest tests/ -v
 
 # Start the server
