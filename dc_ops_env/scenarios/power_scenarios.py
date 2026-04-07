@@ -352,13 +352,16 @@ class PowerFailureCascade(Scenario):
     """
 
     _CONSECUTIVE_STABLE_STEPS = 2
+    _MIN_STEPS_BEFORE_RESOLUTION = 4  # Hard scenario needs investigation
 
     def __init__(self) -> None:
         super().__init__()
         self._stable_count = 0
+        self._diagnosed_ups = False
 
     def reset_state(self) -> None:
         self._stable_count = 0
+        self._diagnosed_ups = False
 
     def configure(self, base_config: DatacenterConfig) -> DatacenterConfig:
         # Extend generator warmup to make it more challenging
@@ -383,6 +386,12 @@ class PowerFailureCascade(Scenario):
         step: int,
     ) -> ScenarioResult:
         dc = thermal_sim.state
+
+        # Track if agent diagnosed UPS
+        cmd_parts = action_command.strip().split()
+        if (len(cmd_parts) >= 2 and cmd_parts[0].lower() == "diagnose"
+                and "ups" in cmd_parts[1].lower()):
+            self._diagnosed_ups = True
 
         # Check temperatures
         all_within_allowable = True
@@ -410,7 +419,15 @@ class PowerFailureCascade(Scenario):
         else:
             self._stable_count = 0
 
-        resolved = self._stable_count >= self._CONSECUTIVE_STABLE_STEPS
+        # Resolution requires:
+        #   1. Agent diagnosed UPS status (proper incident response)
+        #   2. Stable for N consecutive steps
+        #   3. At least _MIN_STEPS_BEFORE_RESOLUTION steps taken
+        resolved = (
+            self._stable_count >= self._CONSECUTIVE_STABLE_STEPS
+            and self._diagnosed_ups
+            and step >= self._MIN_STEPS_BEFORE_RESOLUTION
+        )
 
         # Reward shaping
         scenario_reward = 0.0

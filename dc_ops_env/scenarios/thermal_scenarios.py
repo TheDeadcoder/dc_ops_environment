@@ -161,16 +161,19 @@ class ThermalEventResponse(Scenario):
 
     _FAILED_UNIT = "CRAC-3"
     _CONSECUTIVE_STABLE_STEPS = 2
+    _MIN_STEPS_BEFORE_RESOLUTION = 5  # Agent must take at least 5 actions
 
     def __init__(self) -> None:
         super().__init__()
         self._stable_count = 0
+        self._diagnosed_fault = False  # Must diagnose the faulty unit
 
     def reset_state(self) -> None:
         self._stable_count = 0
+        self._diagnosed_fault = False
 
     def configure(self, base_config: DatacenterConfig) -> DatacenterConfig:
-        return base_config  # Default config is fine
+        return base_config
 
     def inject_fault(
         self,
@@ -189,6 +192,12 @@ class ThermalEventResponse(Scenario):
     ) -> ScenarioResult:
         dc = thermal_sim.state
 
+        # Track if agent diagnosed the faulty unit
+        cmd_parts = action_command.strip().split()
+        if (len(cmd_parts) >= 2 and cmd_parts[0].lower() == "diagnose"
+                and cmd_parts[1].upper() == self._FAILED_UNIT):
+            self._diagnosed_fault = True
+
         # Check if all zones within recommended
         all_within_recommended = True
         max_over = 0.0
@@ -205,7 +214,15 @@ class ThermalEventResponse(Scenario):
         else:
             self._stable_count = 0
 
-        resolved = self._stable_count >= self._CONSECUTIVE_STABLE_STEPS
+        # Resolution requires:
+        #   1. Agent diagnosed the faulty unit (proper procedure)
+        #   2. Temps stable for N consecutive steps
+        #   3. At least _MIN_STEPS_BEFORE_RESOLUTION steps taken
+        resolved = (
+            self._diagnosed_fault
+            and self._stable_count >= self._CONSECUTIVE_STABLE_STEPS
+            and step >= self._MIN_STEPS_BEFORE_RESOLUTION
+        )
 
         # Scenario reward: penalty proportional to temperature overshoot
         scenario_reward = -max_over * 0.5 if max_over > 0 else 0.1
@@ -304,6 +321,7 @@ class CRACFailureCascade(Scenario):
         ("CRAC-3", CRACFaultType.FAN),
     ]
     _CONSECUTIVE_STABLE_STEPS = 2
+    _MIN_STEPS_BEFORE_RESOLUTION = 5  # Hard scenario needs investigation time
 
     def __init__(self) -> None:
         super().__init__()
@@ -348,19 +366,25 @@ class CRACFailureCascade(Scenario):
         else:
             self._stable_count = 0
 
-        resolved = self._stable_count >= self._CONSECUTIVE_STABLE_STEPS
-
-        # Heavy penalty for being over allowable
-        scenario_reward = -max_over * 2.0 if max_over > 0 else 0.2
-
-        procedure_reward = self.check_procedure(action_command, action_history)
-
         # Bonus for diagnosing both units
         diagnosed_units = set()
         for h in action_history:
             parts = h.strip().split()
             if len(parts) >= 2 and parts[0].lower() == "diagnose":
                 diagnosed_units.add(parts[1].upper())
+
+        resolved = (
+            self._stable_count >= self._CONSECUTIVE_STABLE_STEPS
+            and "CRAC-1" in diagnosed_units
+            and "CRAC-3" in diagnosed_units
+            and step >= self._MIN_STEPS_BEFORE_RESOLUTION
+        )
+
+        # Heavy penalty for being over allowable
+        scenario_reward = -max_over * 2.0 if max_over > 0 else 0.2
+
+        procedure_reward = self.check_procedure(action_command, action_history)
+
         if "CRAC-1" in diagnosed_units and "CRAC-3" in diagnosed_units:
             procedure_reward += 0.2  # Bonus for thorough diagnosis
 

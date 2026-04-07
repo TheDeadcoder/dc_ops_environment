@@ -180,16 +180,18 @@ class TestA2ThermalEvent:
 
     def test_procedure_bonus_for_diagnose_first(self) -> None:
         """Diagnosing before adjusting should yield higher reward."""
-        # Run 1: diagnose first, then adjust
+        # Run 1: diagnose first, then adjust (procedure bonus on step 2)
         env1 = DcOpsEnvironment()
         env1.reset(scenario="A2")
-        obs1a = env1.step(DcOpsAction(command="diagnose CRAC-3"))
+        env1.step(DcOpsAction(command="diagnose CRAC-3"))
         obs1b = env1.step(DcOpsAction(command="adjust_setpoint CRAC-4 20"))
         r_with_diagnose = obs1b.reward
 
-        # Run 2: adjust without diagnosing
+        # Run 2: wait, then adjust without diagnosing (procedure penalty on step 2)
+        # Using wait keeps physics comparable so only the procedure bonus differs
         env2 = DcOpsEnvironment()
         env2.reset(scenario="A2")
+        env2.step(DcOpsAction(command="wait"))
         obs2 = env2.step(DcOpsAction(command="adjust_setpoint CRAC-4 20"))
         r_without_diagnose = obs2.reward
 
