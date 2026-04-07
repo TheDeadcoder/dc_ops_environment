@@ -352,7 +352,7 @@ class PowerFailureCascade(Scenario):
     """
 
     _CONSECUTIVE_STABLE_STEPS = 2
-    _MIN_STEPS_BEFORE_RESOLUTION = 4  # Hard scenario needs investigation
+    _MIN_STEPS_BEFORE_RESOLUTION = 8  # Hard scenario needs investigation
 
     def __init__(self) -> None:
         super().__init__()

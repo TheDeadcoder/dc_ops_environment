@@ -161,7 +161,7 @@ class ThermalEventResponse(Scenario):
 
     _FAILED_UNIT = "CRAC-3"
     _CONSECUTIVE_STABLE_STEPS = 2
-    _MIN_STEPS_BEFORE_RESOLUTION = 5  # Agent must take at least 5 actions
+    _MIN_STEPS_BEFORE_RESOLUTION = 8  # Agent must take at least 8 actions
 
     def __init__(self) -> None:
         super().__init__()
@@ -321,7 +321,7 @@ class CRACFailureCascade(Scenario):
         ("CRAC-3", CRACFaultType.FAN),
     ]
     _CONSECUTIVE_STABLE_STEPS = 2
-    _MIN_STEPS_BEFORE_RESOLUTION = 5  # Hard scenario needs investigation time
+    _MIN_STEPS_BEFORE_RESOLUTION = 8  # Hard scenario needs investigation time
 
     def __init__(self) -> None:
         super().__init__()

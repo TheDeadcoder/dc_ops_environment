@@ -319,6 +319,96 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);min-hei
   .guide-table{font-size:0.7rem}
   .guide-table th,.guide-table td{padding:0.375rem 0.5rem}
 }
+
+/* ─── Demos Page ─── */
+.demos-page{display:none;overflow-y:auto;padding:2rem 1.5rem;background:var(--bg)}
+.demos-page.active{display:block}
+.demos-inner{max-width:1000px;margin:0 auto}
+.demos-hero{text-align:center;padding:2rem 1rem 1.5rem;margin-bottom:1.5rem}
+.demos-hero h1{font-size:2rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:0.5rem}
+.demos-hero h1 span{color:var(--accent)}
+.demos-hero p{color:var(--text-dim);font-size:0.9rem;max-width:620px;margin:0 auto;line-height:1.7}
+
+/* Demo overview table */
+.demo-overview{width:100%;border-collapse:collapse;font-size:0.78rem;margin:0 0 2rem;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.demo-overview thead{background:var(--bg-card)}
+.demo-overview th{text-align:left;padding:0.625rem 0.875rem;font-weight:600;color:var(--text);border-bottom:1px solid var(--border);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em}
+.demo-overview td{padding:0.5rem 0.875rem;border-bottom:1px solid var(--border);color:var(--text-dim);vertical-align:middle}
+.demo-overview tr:last-child td{border-bottom:none}
+.demo-overview tbody tr{cursor:pointer;transition:background 0.15s}
+.demo-overview tbody tr:hover{background:var(--bg-card-hover)}
+.demo-overview code{font-family:var(--font-mono);font-size:0.75rem;color:var(--cyan);background:var(--terminal-bg);padding:0.1rem 0.375rem;border-radius:3px}
+
+/* Demo accordion items */
+.demo-item{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1rem;overflow:hidden;transition:border-color 0.2s}
+.demo-item:hover{border-color:rgba(59,130,246,0.3)}
+.demo-item.open{border-color:var(--accent)}
+.demo-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;cursor:pointer;user-select:none;gap:1rem}
+.demo-header:hover{background:rgba(255,255,255,0.02)}
+.demo-header-left{display:flex;align-items:center;gap:0.875rem;min-width:0}
+.demo-badge{font-family:var(--font-mono);font-weight:800;font-size:0.85rem;color:var(--accent);background:rgba(59,130,246,0.1);padding:0.3rem 0.625rem;border-radius:var(--radius);white-space:nowrap}
+.demo-title-block{min-width:0}
+.demo-title-block h3{font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:0.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.demo-title-block .demo-subtitle{font-size:0.72rem;color:var(--text-muted);display:flex;gap:0.75rem;flex-wrap:wrap}
+.demo-title-block .demo-subtitle span{display:inline-flex;align-items:center;gap:0.25rem}
+.demo-header-right{display:flex;align-items:center;gap:0.75rem;flex-shrink:0}
+.demo-reward{font-family:var(--font-mono);font-weight:700;font-size:0.85rem;color:var(--green)}
+.demo-chevron{width:20px;height:20px;color:var(--text-muted);transition:transform 0.2s;flex-shrink:0}
+.demo-item.open .demo-chevron{transform:rotate(180deg)}
+.demo-body{display:none;padding:0 1.25rem 1.25rem;animation:fadeIn 0.2s ease}
+.demo-item.open .demo-body{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* Demo context */
+.demo-context{background:var(--terminal-bg);border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-bottom:1rem;font-size:0.8rem;color:var(--text-dim);line-height:1.65}
+
+/* Demo step table */
+.demo-steps{width:100%;border-collapse:collapse;font-size:0.75rem;margin:0.75rem 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.demo-steps thead{background:rgba(59,130,246,0.06)}
+.demo-steps th{text-align:left;padding:0.5rem 0.625rem;font-weight:600;color:var(--text);border-bottom:1px solid var(--border);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em}
+.demo-steps td{padding:0.4rem 0.625rem;border-bottom:1px solid var(--border);color:var(--text-dim);vertical-align:top;line-height:1.5}
+.demo-steps tr:last-child td{border-bottom:none}
+.demo-steps tbody tr:hover{background:var(--bg-card-hover)}
+.demo-steps code{font-family:var(--font-mono);font-size:0.72rem;color:var(--cyan);background:var(--terminal-bg);padding:0.1rem 0.35rem;border-radius:3px;white-space:nowrap}
+.demo-steps .step-num{font-family:var(--font-mono);font-weight:700;color:var(--text-muted);width:28px}
+.demo-steps .rew-pos{color:var(--green);font-weight:600;font-family:var(--font-mono)}
+.demo-steps .rew-neg{color:var(--red);font-weight:600;font-family:var(--font-mono)}
+.demo-steps .rew-big{color:var(--green);font-weight:800;font-family:var(--font-mono)}
+.demo-steps .resolved-row{background:rgba(34,197,94,0.06)}
+
+/* Demo analysis box */
+.demo-analysis{background:var(--terminal-bg);border:1px solid var(--border);border-radius:var(--radius);padding:0.875rem 1rem;margin-top:1rem;font-size:0.78rem;color:var(--text-dim);line-height:1.65}
+.demo-analysis h4{font-size:0.8rem;font-weight:700;color:var(--text);margin-bottom:0.5rem}
+.demo-analysis ul{padding-left:1.25rem;margin:0.5rem 0}
+.demo-analysis li{margin-bottom:0.25rem}
+.demo-analysis strong{color:var(--text)}
+
+/* Demo comparison tables */
+.demo-compare{width:100%;border-collapse:collapse;font-size:0.75rem;margin:0.75rem 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.demo-compare thead{background:var(--bg-card)}
+.demo-compare th{padding:0.4rem 0.625rem;font-weight:600;color:var(--text);border-bottom:1px solid var(--border);font-size:0.68rem;text-transform:uppercase;text-align:left}
+.demo-compare td{padding:0.375rem 0.625rem;border-bottom:1px solid var(--border);color:var(--text-dim);font-family:var(--font-mono);font-size:0.72rem}
+.demo-compare tr:last-child td{border-bottom:none}
+
+/* Resolution gate table */
+.demo-gate-table{width:100%;border-collapse:collapse;font-size:0.78rem;margin:1rem 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.demo-gate-table thead{background:rgba(239,68,68,0.06)}
+.demo-gate-table th{text-align:left;padding:0.5rem 0.75rem;font-weight:600;color:var(--text);border-bottom:1px solid var(--border);font-size:0.72rem;text-transform:uppercase}
+.demo-gate-table td{padding:0.5rem 0.75rem;border-bottom:1px solid var(--border);color:var(--text-dim);font-size:0.78rem}
+.demo-gate-table tr:last-child td{border-bottom:none}
+.demo-gate-table code{font-family:var(--font-mono);font-size:0.72rem;color:var(--cyan);background:var(--terminal-bg);padding:0.1rem 0.35rem;border-radius:3px}
+
+@media(max-width:640px){
+  .demos-page{padding:1rem 0.75rem}
+  .demos-hero h1{font-size:1.5rem}
+  .demo-header{padding:0.75rem;flex-wrap:wrap}
+  .demo-header-left{flex:1;min-width:200px}
+  .demo-steps{font-size:0.68rem}
+  .demo-steps th,.demo-steps td{padding:0.3rem 0.4rem}
+  .demo-body{padding:0 0.75rem 0.75rem}
+  .demo-overview{font-size:0.7rem}
+  .demo-title-block h3{font-size:0.8rem}
+}
 </style>
 </head>
 <body>
@@ -335,6 +425,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);min-hei
     </div>
     <div class="header-tabs">
       <button class="tab-btn active" data-tab="console" onclick="switchTab('console')">Console</button>
+      <button class="tab-btn" data-tab="demos" onclick="switchTab('demos')">Demos</button>
       <button class="tab-btn" data-tab="guide" onclick="switchTab('guide')">Guide</button>
     </div>
     <div class="mobile-toggles">
@@ -523,6 +614,488 @@ Pick a scenario to start
     </aside>
   </div>
   </div><!-- /tabConsole -->
+
+  <!-- Demos Tab -->
+  <div class="demos-page" id="tabDemos">
+  <div class="demos-inner">
+
+    <div class="demos-hero">
+      <h1>Scenario <span>Demos</span></h1>
+      <p>Nine verified demo walkthroughs across all scenarios and facility sizes. Each demo resolves in 8–10 steps following proper operational procedure: assess → diagnose → compensate → verify → resolve.</p>
+    </div>
+
+    <!-- Overview Table -->
+    <table class="demo-overview">
+      <thead>
+        <tr><th>#</th><th>Scenario</th><th>Facility</th><th>Steps</th><th>Reward</th><th>Key Skill</th></tr>
+      </thead>
+      <tbody>
+        <tr onclick="openDemo('demo1')"><td>1</td><td><code>A1</code> Setpoint Optimization</td><td>Default</td><td>9</td><td style="color:var(--green);font-weight:700">+0.324</td><td>PUE optimization</td></tr>
+        <tr onclick="openDemo('demo2')"><td>2</td><td><code>A2</code> Thermal Event</td><td>Default</td><td>8</td><td style="color:var(--green);font-weight:700">+0.873</td><td>Single-failure response</td></tr>
+        <tr onclick="openDemo('demo3')"><td>3</td><td><code>A2</code> Thermal Event</td><td>Large</td><td>8</td><td style="color:var(--green);font-weight:700">+0.831</td><td>Multi-zone + H1 isolation</td></tr>
+        <tr onclick="openDemo('demo4')"><td>4</td><td><code>A4</code> CRAC Cascade</td><td>Default</td><td>8</td><td style="color:var(--green);font-weight:700">+1.230</td><td>Multi-failure triage</td></tr>
+        <tr onclick="openDemo('demo5')"><td>5</td><td><code>A4</code> CRAC Cascade</td><td>Large</td><td>8</td><td style="color:var(--green);font-weight:700">+1.150</td><td>Multi-zone cascade</td></tr>
+        <tr onclick="openDemo('demo6')"><td>6</td><td><code>B1</code> UPS Alarm</td><td>Default</td><td>8</td><td style="color:var(--green);font-weight:700">+0.512</td><td>Power chain audit</td></tr>
+        <tr onclick="openDemo('demo7')"><td>7</td><td><code>B3</code> Generator Test</td><td>Default</td><td>10</td><td style="color:var(--green);font-weight:700">+0.567</td><td>Protocol compliance</td></tr>
+        <tr onclick="openDemo('demo8')"><td>8</td><td><code>B4</code> Power Failure</td><td>Default</td><td>8</td><td style="color:var(--green);font-weight:700">+0.934</td><td>Battery + gen startup</td></tr>
+        <tr onclick="openDemo('demo9')"><td>9</td><td><code>B4</code> Power Failure</td><td>Small</td><td>8</td><td style="color:var(--green);font-weight:700">+0.948</td><td>Aggressive load shedding</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Demo 1: A1 Default -->
+    <div class="demo-item" id="demo1">
+      <div class="demo-header" onclick="toggleDemo('demo1')">
+        <div class="demo-header-left">
+          <span class="demo-badge">A1</span>
+          <div class="demo-title-block">
+            <h3>Cooling Setpoint Optimization</h3>
+            <div class="demo-subtitle">
+              <span>Default Facility</span>
+              <span>9 steps</span>
+              <span style="background:var(--green-dim);color:var(--green);padding:0.05rem 0.4rem;border-radius:999px;font-size:0.6rem;font-weight:700">EASY</span>
+            </div>
+          </div>
+        </div>
+        <div class="demo-header-right">
+          <span class="demo-reward">+0.324</span>
+          <svg class="demo-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+        </div>
+      </div>
+      <div class="demo-body">
+        <div class="demo-context">
+          All four CRACs are set to 15°C — far below what the servers need. This wastes energy: compressors run hard, fans blow at 100%, and PUE sits at 1.87. ASHRAE A2 class allows inlet temps up to 27°C. The agent must raise setpoints and reduce fan speeds to approach the PUE target of 1.6 without overheating.
+        </div>
+        <table class="demo-steps">
+          <thead><tr><th>#</th><th>Command</th><th>Reward</th><th>Cumul</th><th>PUE</th><th>Inlets</th><th>Reasoning</th></tr></thead>
+          <tbody>
+            <tr><td class="step-num">1</td><td><code>check_status</code></td><td class="rew-pos">+0.131</td><td>+0.131</td><td>1.87</td><td>17.1 / 17.1</td><td>Procedure bonus (+0.2): must check before adjusting. Baseline — all CRACs at 15°C.</td></tr>
+            <tr><td class="step-num">2</td><td><code>adjust_setpoint CRAC-1 24</code></td><td class="rew-pos">+0.047</td><td>+0.178</td><td>1.80</td><td>17.7 / 17.1</td><td>Raise from 15→24°C. Compressor works less → immediate PUE drop.</td></tr>
+            <tr><td class="step-num">3</td><td><code>adjust_setpoint CRAC-2 24</code></td><td class="rew-pos">+0.039</td><td>+0.217</td><td>1.76</td><td>19.2 / 17.0</td><td>PUE continues falling. Zone A inlets rising — still safely below 27°C.</td></tr>
+            <tr><td class="step-num">4</td><td><code>adjust_setpoint CRAC-3 24</code></td><td class="rew-pos">+0.038</td><td>+0.255</td><td>1.71</td><td>20.7 / 17.6</td><td>Zone B responding. Thermal mass (11.1 kJ/K per server) causes gradual warming.</td></tr>
+            <tr><td class="step-num">5</td><td><code>adjust_setpoint CRAC-4 24</code></td><td class="rew-pos">+0.025</td><td>+0.280</td><td>1.69</td><td>21.9 / 19.1</td><td>All CRACs at 24°C. PUE 1.69 — still above 1.6 target. Fan reduction needed.</td></tr>
+            <tr><td class="step-num">6</td><td><code>set_fan_speed CRAC-1 70</code></td><td class="rew-neg">−0.019</td><td>+0.261</td><td>1.68</td><td>22.8 / 20.6</td><td>Fan power follows cubic law: at 70%, power = 34% of rated (66% saving).</td></tr>
+            <tr><td class="step-num">7</td><td><code>set_fan_speed CRAC-2 70</code></td><td class="rew-neg">−0.017</td><td>+0.244</td><td>1.66</td><td>23.4 / 21.9</td><td>PUE 1.66. Inlets 23.4°C — still 3.6°C below ASHRAE A2 max (27°C).</td></tr>
+            <tr><td class="step-num">8</td><td><code>set_fan_speed CRAC-3 70</code></td><td class="rew-neg">−0.012</td><td>+0.232</td><td>1.63</td><td>23.9 / 22.7</td><td>Almost there. System approaching equilibrium.</td></tr>
+            <tr class="resolved-row"><td class="step-num">9</td><td><code>set_fan_speed CRAC-4 70</code></td><td class="rew-big">+0.092</td><td><strong>+0.324</strong></td><td><strong>1.60</strong></td><td>24.3 / 23.3</td><td><strong>RESOLVED.</strong> PUE hits target (≤1.6). Speed bonus: (10−9)/10 = +0.1.</td></tr>
+          </tbody>
+        </table>
+        <div class="demo-analysis">
+          <h4>Why This Works</h4>
+          <ul>
+            <li><strong>Phase 1 (steps 2–5): Setpoint adjustment.</strong> Raising 15→24°C reduces compressor load. PUE drops 1.87→1.69 (10% improvement).</li>
+            <li><strong>Phase 2 (steps 6–9): Fan speed reduction.</strong> Cubic fan law means 100→70% cuts fan power by 66%. Pushes PUE from 1.69→1.60.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 2: A2 Default -->
+    <div class="demo-item" id="demo2">
+      <div class="demo-header" onclick="toggleDemo('demo2')">
+        <div class="demo-header-left">
+          <span class="demo-badge">A2</span>
+          <div class="demo-title-block">
+            <h3>Thermal Event Response — Default</h3>
+            <div class="demo-subtitle">
+              <span>Default Facility (160 kW)</span>
+              <span>8 steps</span>
+              <span style="background:var(--yellow-dim);color:var(--yellow);padding:0.05rem 0.4rem;border-radius:999px;font-size:0.6rem;font-weight:700">MEDIUM</span>
+            </div>
+          </div>
+        </div>
+        <div class="demo-header-right">
+          <span class="demo-reward">+0.873</span>
+          <svg class="demo-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+        </div>
+      </div>
+      <div class="demo-body">
+        <div class="demo-context">
+          CRAC-3 compressor has failed. With only 3 of 4 CRACs operational, cooling capacity is reduced. The default facility has N+1 redundancy, so temperatures won't spike catastrophically, but the agent must diagnose the fault and compensate to ensure long-term stability.
+        </div>
+        <table class="demo-steps">
+          <thead><tr><th>#</th><th>Command</th><th>Reward</th><th>Cumul</th><th>Inlets (A/B)</th><th>Reasoning</th></tr></thead>
+          <tbody>
+            <tr><td class="step-num">1</td><td><code>check_status</code></td><td class="rew-pos">+0.204</td><td>+0.204</td><td>19.8 / 20.0</td><td>CRAC-3 shows "!! COMPRESSOR" — no supply temp, no airflow, 0 kW.</td></tr>
+            <tr><td class="step-num">2</td><td><code>diagnose CRAC-3</code></td><td class="rew-pos">+0.054</td><td>+0.258</td><td>19.8 / 20.2</td><td><strong>Unlocks resolution gate.</strong> Confirms "FAULT: compressor." +0.3 bonus on subsequent setpoint changes.</td></tr>
+            <tr><td class="step-num">3</td><td><code>diagnose CRAC-1</code></td><td class="rew-neg">−0.021</td><td>+0.237</td><td>19.8 / 20.4</td><td>Verify remaining CRACs healthy. "No faults detected."</td></tr>
+            <tr><td class="step-num">4</td><td><code>adjust_setpoint CRAC-1 16</code></td><td class="rew-pos">+0.034</td><td>+0.270</td><td>19.6 / 20.5</td><td>Lower setpoint 18→16°C. Increases cooling output. Earns procedure bonus.</td></tr>
+            <tr><td class="step-num">5</td><td><code>adjust_setpoint CRAC-2 16</code></td><td class="rew-pos">+0.034</td><td>+0.304</td><td>19.3 / 20.6</td><td>Both zone A CRACs overcooling to compensate.</td></tr>
+            <tr><td class="step-num">6</td><td><code>set_fan_speed CRAC-1 100</code></td><td class="rew-pos">+0.034</td><td>+0.338</td><td>19.0 / 20.8</td><td>Max airflow on surviving CRACs.</td></tr>
+            <tr><td class="step-num">7</td><td><code>set_fan_speed CRAC-2 100</code></td><td class="rew-pos">+0.034</td><td>+0.372</td><td>18.7 / 20.8</td><td>Zone B stabilizing at ~20.8°C — within ASHRAE recommended range.</td></tr>
+            <tr class="resolved-row"><td class="step-num">8</td><td><code>set_fan_speed CRAC-4 100</code></td><td class="rew-big">+0.501</td><td><strong>+0.873</strong></td><td>18.5 / 20.9</td><td><strong>RESOLVED.</strong> All zones stable for 2+ steps. Speed bonus: (15−8)/15 = +0.467.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Demo 3: A2 Large -->
+    <div class="demo-item" id="demo3">
+      <div class="demo-header" onclick="toggleDemo('demo3')">
+        <div class="demo-header-left">
+          <span class="demo-badge">A2</span>
+          <div class="demo-title-block">
+            <h3>Thermal Event Response — Large</h3>
+            <div class="demo-subtitle">
+              <span>Large Facility (600 kW, H1 zone)</span>
+              <span>8 steps</span>
+              <span style="background:var(--yellow-dim);color:var(--yellow);padding:0.05rem 0.4rem;border-radius:999px;font-size:0.6rem;font-weight:700">MEDIUM</span>
+            </div>
+          </div>
+        </div>
+        <div class="demo-header-right">
+          <span class="demo-reward">+0.831</span>
+          <svg class="demo-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+        </div>
+      </div>
+      <div class="demo-body">
+        <div class="demo-context">
+          Same CRAC-3 failure, but in a larger facility with 4 zones including an H1 (high-density GPU) zone. H1 has a tighter thermal envelope (recommended max 22°C vs 27°C for A2).
+        </div>
+        <table class="demo-steps">
+          <thead><tr><th>#</th><th>Command</th><th>Reward</th><th>Cumul</th><th>Inlets (A/B/C/D)</th><th>Reasoning</th></tr></thead>
+          <tbody>
+            <tr><td class="step-num">1</td><td><code>check_status</code></td><td class="rew-pos">+0.207</td><td>+0.207</td><td>20.0 / 20.8 / 19.2 / 19.7</td><td>4-zone dashboard. Zone B 0.8°C warmer. Zone C (H1) at 19.2°C — 2.8°C below its 22°C max.</td></tr>
+            <tr><td class="step-num">2</td><td><code>diagnose CRAC-3</code></td><td class="rew-pos">+0.057</td><td>+0.263</td><td>20.0 / 21.6 / 19.2 / 19.7</td><td>FAULT: compressor. Zone B rising +0.8°C/step. Zone C stable.</td></tr>
+            <tr><td class="step-num">3</td><td><code>diagnose CRAC-1</code></td><td class="rew-neg">−0.019</td><td>+0.245</td><td>20.0 / 22.3 / 19.2 / 19.6</td><td>Confirm CRAC-1 healthy.</td></tr>
+            <tr><td class="step-num">4</td><td><code>diagnose CRAC-2</code></td><td class="rew-neg">−0.019</td><td>+0.225</td><td>20.0 / 23.0 / 19.2 / 19.6</td><td>Confirm CRAC-2 healthy. Thorough zone B CRAC audit.</td></tr>
+            <tr><td class="step-num">5</td><td><code>adjust_setpoint CRAC-2 16</code></td><td class="rew-pos">+0.035</td><td>+0.261</td><td>19.9 / 23.6 / 19.2 / 19.6</td><td>Lower surviving zone B CRAC. Procedure bonus earned.</td></tr>
+            <tr><td class="step-num">6</td><td><code>adjust_setpoint CRAC-4 16</code></td><td class="rew-pos">+0.035</td><td>+0.296</td><td>19.7 / 24.0 / 19.2 / 19.6</td><td>Rate of rise slowing. H1 zone unaffected.</td></tr>
+            <tr><td class="step-num">7</td><td><code>set_fan_speed CRAC-2 100</code></td><td class="rew-pos">+0.035</td><td>+0.330</td><td>19.6 / 24.3 / 19.2 / 19.6</td><td>Max airflow. Zone B 2.7°C below ASHRAE A2 max.</td></tr>
+            <tr class="resolved-row"><td class="step-num">8</td><td><code>set_fan_speed CRAC-4 100</code></td><td class="rew-big">+0.501</td><td><strong>+0.831</strong></td><td>19.5 / 24.6 / 19.2 / 19.6</td><td><strong>RESOLVED.</strong> Zone B stabilized. H1 completely unaffected.</td></tr>
+          </tbody>
+        </table>
+        <div class="demo-analysis">
+          <h4>Default vs Large Comparison</h4>
+          <table class="demo-compare">
+            <thead><tr><th>Metric</th><th>Default</th><th>Large</th></tr></thead>
+            <tbody>
+              <tr><td>Max inlet temp</td><td>20.9°C</td><td>24.6°C</td></tr>
+              <tr><td>H1 zone impact</td><td>N/A</td><td>None (19.2°C)</td></tr>
+              <tr><td>Cumulative reward</td><td>+0.873</td><td>+0.831</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 4: A4 Default -->
+    <div class="demo-item" id="demo4">
+      <div class="demo-header" onclick="toggleDemo('demo4')">
+        <div class="demo-header-left">
+          <span class="demo-badge">A4</span>
+          <div class="demo-title-block">
+            <h3>CRAC Failure Cascade — Default</h3>
+            <div class="demo-subtitle">
+              <span>Default Facility (160 kW)</span>
+              <span>8 steps</span>
+              <span style="background:var(--red-dim);color:var(--red);padding:0.05rem 0.4rem;border-radius:999px;font-size:0.6rem;font-weight:700">HARD</span>
+            </div>
+          </div>
+        </div>
+        <div class="demo-header-right">
+          <span class="demo-reward">+1.230</span>
+          <svg class="demo-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+        </div>
+      </div>
+      <div class="demo-body">
+        <div class="demo-context">
+          Two CRACs fail simultaneously: CRAC-1 (compressor) and CRAC-3 (fan). Only CRAC-2 and CRAC-4 remain — 50% cooling capacity lost. The agent must diagnose both failures, aggressively compensate, and consider load shedding.
+        </div>
+        <table class="demo-steps">
+          <thead><tr><th>#</th><th>Command</th><th>Reward</th><th>Cumul</th><th>Inlets (A/B)</th><th>Reasoning</th></tr></thead>
+          <tbody>
+            <tr><td class="step-num">1</td><td><code>check_status</code></td><td class="rew-pos">+0.212</td><td>+0.212</td><td>19.9 / 19.9</td><td>Two red-flagged CRACs. 50% cooling capacity lost.</td></tr>
+            <tr><td class="step-num">2</td><td><code>diagnose CRAC-1</code></td><td class="rew-pos">+0.062</td><td>+0.274</td><td>20.0 / 20.0</td><td>"FAULT: compressor." First of two required diagnoses.</td></tr>
+            <tr><td class="step-num">3</td><td><code>diagnose CRAC-3</code></td><td class="rew-pos">+0.027</td><td>+0.301</td><td>20.1 / 20.1</td><td>"FAULT: fan." Both diagnosed → resolution gate unlocked. +0.2 procedure bonus.</td></tr>
+            <tr><td class="step-num">4</td><td><code>adjust_setpoint CRAC-2 16</code></td><td class="rew-pos">+0.062</td><td>+0.363</td><td>20.2 / 20.2</td><td>Lower surviving CRAC setpoint. Procedure bonus (diagnosis first).</td></tr>
+            <tr><td class="step-num">5</td><td><code>adjust_setpoint CRAC-4 16</code></td><td class="rew-pos">+0.062</td><td>+0.425</td><td>20.2 / 20.3</td><td>Both survivors at 16°C. Temps stabilizing.</td></tr>
+            <tr><td class="step-num">6</td><td><code>set_fan_speed CRAC-2 100</code></td><td class="rew-pos">+0.062</td><td>+0.487</td><td>20.1 / 20.2</td><td>Max airflow confirmed.</td></tr>
+            <tr><td class="step-num">7</td><td><code>set_fan_speed CRAC-4 100</code></td><td class="rew-pos">+0.062</td><td>+0.549</td><td>20.1 / 20.2</td><td>Temps flat at ~20.1°C. Stable consecutive steps.</td></tr>
+            <tr class="resolved-row"><td class="step-num">8</td><td><code>set_rack_load B-05 4</code></td><td class="rew-big">+0.681</td><td><strong>+1.230</strong></td><td>20.0 / 20.1</td><td><strong>RESOLVED.</strong> Load shed for thermal margin. Speed bonus: (20−8)/20 = +0.600.</td></tr>
+          </tbody>
+        </table>
+        <div class="demo-analysis">
+          <h4>Why Load Shedding Matters</h4>
+          <ul>
+            <li>Reducing rack B-05 from 8 kW to 4 kW provides additional thermal margin</li>
+            <li>Demonstrates workload migration capability</li>
+            <li>Earns action quality bonus (+0.2 for interventions)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 5: A4 Large -->
+    <div class="demo-item" id="demo5">
+      <div class="demo-header" onclick="toggleDemo('demo5')">
+        <div class="demo-header-left">
+          <span class="demo-badge">A4</span>
+          <div class="demo-title-block">
+            <h3>CRAC Failure Cascade — Large</h3>
+            <div class="demo-subtitle">
+              <span>Large Facility (600 kW, H1 zone)</span>
+              <span>8 steps</span>
+              <span style="background:var(--red-dim);color:var(--red);padding:0.05rem 0.4rem;border-radius:999px;font-size:0.6rem;font-weight:700">HARD</span>
+            </div>
+          </div>
+        </div>
+        <div class="demo-header-right">
+          <span class="demo-reward">+1.150</span>
+          <svg class="demo-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+        </div>
+      </div>
+      <div class="demo-body">
+        <div class="demo-context">
+          CRAC-1 and CRAC-3 down out of 8 CRACs. Zones C/D (including H1) have dedicated CRACs and remain unaffected. Zones A/B share the affected CRACs.
+        </div>
+        <table class="demo-steps">
+          <thead><tr><th>#</th><th>Command</th><th>Reward</th><th>Cumul</th><th>Inlets (A/B/C/D)</th><th>Reasoning</th></tr></thead>
+          <tbody>
+            <tr><td class="step-num">1</td><td><code>check_status</code></td><td class="rew-pos">+0.210</td><td>+0.210</td><td>20.4 / 20.4 / 19.2 / 19.7</td><td>CRAC-1 and CRAC-3 down. Zones C/D have own CRACs.</td></tr>
+            <tr><td class="step-num">2</td><td><code>diagnose CRAC-1</code></td><td class="rew-pos">+0.059</td><td>+0.269</td><td>20.8 / 20.8 / 19.2 / 19.7</td><td>FAULT: compressor. Zone A/B rising ~0.4°C/step.</td></tr>
+            <tr><td class="step-num">3</td><td><code>diagnose CRAC-3</code></td><td class="rew-pos">+0.024</td><td>+0.293</td><td>21.2 / 21.2 / 19.2 / 19.7</td><td>FAULT: fan. Both diagnosed → gate unlocked.</td></tr>
+            <tr><td class="step-num">4</td><td><code>diagnose CRAC-2</code></td><td class="rew-pos">+0.024</td><td>+0.317</td><td>21.6 / 21.6 / 19.2 / 19.7</td><td>Verify CRAC-2 healthy. Critical with 2 failures.</td></tr>
+            <tr><td class="step-num">5</td><td><code>adjust_setpoint CRAC-2 16</code></td><td class="rew-pos">+0.059</td><td>+0.376</td><td>21.9 / 22.0 / 19.2 / 19.6</td><td>Compensate. Zone B at 22.0°C — 13°C below ASHRAE allowable max (35°C).</td></tr>
+            <tr><td class="step-num">6</td><td><code>adjust_setpoint CRAC-4 16</code></td><td class="rew-pos">+0.058</td><td>+0.434</td><td>22.2 / 22.3 / 19.2 / 19.6</td><td>Rate of rise slowing. H1 zone unaffected.</td></tr>
+            <tr><td class="step-num">7</td><td><code>set_fan_speed CRAC-2 100</code></td><td class="rew-pos">+0.058</td><td>+0.492</td><td>22.5 / 22.5 / 19.2 / 19.6</td><td>Max airflow. Zone B stabilizing.</td></tr>
+            <tr class="resolved-row"><td class="step-num">8</td><td><code>set_fan_speed CRAC-4 100</code></td><td class="rew-big">+0.658</td><td><strong>+1.150</strong></td><td>22.7 / 22.8 / 19.2 / 19.6</td><td><strong>RESOLVED.</strong> All zones within allowable. Speed bonus: +0.600.</td></tr>
+          </tbody>
+        </table>
+        <div class="demo-analysis">
+          <h4>Default vs Large Comparison</h4>
+          <table class="demo-compare">
+            <thead><tr><th>Metric</th><th>Default</th><th>Large</th></tr></thead>
+            <tbody>
+              <tr><td>Final zone B inlet</td><td>20.1°C</td><td>22.8°C</td></tr>
+              <tr><td>H1 zone impact</td><td>N/A</td><td>None (19.2°C)</td></tr>
+              <tr><td>Cumulative reward</td><td>+1.230</td><td>+1.150</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 6: B1 Default -->
+    <div class="demo-item" id="demo6">
+      <div class="demo-header" onclick="toggleDemo('demo6')">
+        <div class="demo-header-left">
+          <span class="demo-badge">B1</span>
+          <div class="demo-title-block">
+            <h3>UPS Alarm Response</h3>
+            <div class="demo-subtitle">
+              <span>Default Facility (160 kW)</span>
+              <span>8 steps</span>
+              <span style="background:var(--yellow-dim);color:var(--yellow);padding:0.05rem 0.4rem;border-radius:999px;font-size:0.6rem;font-weight:700">MEDIUM</span>
+            </div>
+          </div>
+        </div>
+        <div class="demo-header-right">
+          <span class="demo-reward">+0.512</span>
+          <svg class="demo-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+        </div>
+      </div>
+      <div class="demo-body">
+        <div class="demo-context">
+          A brief utility dip caused UPS-1 to transfer to battery. Utility has been restored and UPS switched back to double-conversion mode, but the alarm persists. The agent must investigate the entire power chain and acknowledge the alarm.
+        </div>
+        <table class="demo-steps">
+          <thead><tr><th>#</th><th>Command</th><th>Reward</th><th>Cumul</th><th>Reasoning</th></tr></thead>
+          <tbody>
+            <tr><td class="step-num">1</td><td><code>check_status</code></td><td class="rew-neg">−0.007</td><td>−0.007</td><td>Baseline. Utility NORMAL, generator OFF, ATS on UTILITY.</td></tr>
+            <tr><td class="step-num">2</td><td><code>diagnose UPS-1</code></td><td class="rew-pos">+0.143</td><td>+0.137</td><td><strong>Key step.</strong> mode=double_conversion, SOC=86%. Resolution gate requires this.</td></tr>
+            <tr><td class="step-num">3</td><td><code>diagnose UPS-2</code></td><td class="rew-neg">−0.007</td><td>+0.130</td><td>Verify redundant UPS. mode=double_conversion, SOC=87%.</td></tr>
+            <tr><td class="step-num">4</td><td><code>diagnose GEN-1</code></td><td class="rew-neg">−0.007</td><td>+0.123</td><td>Generator in standby — confirming readiness.</td></tr>
+            <tr><td class="step-num">5</td><td><code>diagnose PDU-A-01</code></td><td class="rew-neg">−0.007</td><td>+0.117</td><td>Verify power distribution intact.</td></tr>
+            <tr><td class="step-num">6</td><td><code>check_status</code></td><td class="rew-neg">−0.007</td><td>+0.110</td><td>Re-verify before closing incident.</td></tr>
+            <tr><td class="step-num">7</td><td><code>diagnose PDU-B-01</code></td><td class="rew-neg">−0.007</td><td>+0.103</td><td>Complete the power chain audit.</td></tr>
+            <tr class="resolved-row"><td class="step-num">8</td><td><code>acknowledge_alarm</code></td><td class="rew-big">+0.408</td><td><strong>+0.512</strong></td><td><strong>RESOLVED.</strong> Alarm acknowledged after thorough investigation. Speed bonus: (10−8)/10 = +0.200.</td></tr>
+          </tbody>
+        </table>
+        <div class="demo-analysis">
+          <h4>Reward Structure Note</h4>
+          <p>Steps 3–7 return −0.007 each because the delta-based progress metric doesn't change during investigation — only the final acknowledgment triggers progress completion. The cumulative reward is still positive (+0.512) thanks to the large resolution step reward.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 7: B3 Default -->
+    <div class="demo-item" id="demo7">
+      <div class="demo-header" onclick="toggleDemo('demo7')">
+        <div class="demo-header-left">
+          <span class="demo-badge">B3</span>
+          <div class="demo-title-block">
+            <h3>Generator Test Protocol</h3>
+            <div class="demo-subtitle">
+              <span>Default Facility (160 kW)</span>
+              <span>10 steps</span>
+              <span style="background:var(--green-dim);color:var(--green);padding:0.05rem 0.4rem;border-radius:999px;font-size:0.6rem;font-weight:700">EASY</span>
+            </div>
+          </div>
+        </div>
+        <div class="demo-header-right">
+          <span class="demo-reward">+0.567</span>
+          <svg class="demo-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+        </div>
+      </div>
+      <div class="demo-body">
+        <div class="demo-context">
+          Routine monthly generator test. No fault, no emergency — the agent must follow the 5-step protocol: check → start → verify → stop → acknowledge.
+        </div>
+        <table class="demo-steps">
+          <thead><tr><th>#</th><th>Command</th><th>Reward</th><th>Cumul</th><th>Gen State</th><th>Reasoning</th></tr></thead>
+          <tbody>
+            <tr><td class="step-num">1</td><td><code>check_status</code></td><td class="rew-neg">−0.007</td><td>−0.007</td><td>OFF</td><td>Baseline. All systems normal.</td></tr>
+            <tr><td class="step-num">2</td><td><code>diagnose GEN-1</code></td><td class="rew-neg">−0.007</td><td>−0.013</td><td>off</td><td>Pre-test inspection — verify before starting.</td></tr>
+            <tr><td class="step-num">3</td><td><code>start_generator</code></td><td class="rew-pos">+0.113</td><td>+0.100</td><td>CRANKING</td><td>Generator start sequence initiated.</td></tr>
+            <tr><td class="step-num">4</td><td><code>wait</code></td><td class="rew-neg">−0.022</td><td>+0.078</td><td>LOADED</td><td>Let generator complete warmup.</td></tr>
+            <tr><td class="step-num">5</td><td><code>diagnose GEN-1</code></td><td class="rew-pos">+0.043</td><td>+0.122</td><td>ready</td><td><strong>Critical verification.</strong> Confirms generator running properly.</td></tr>
+            <tr><td class="step-num">6</td><td><code>check_status</code></td><td class="rew-neg">−0.007</td><td>+0.115</td><td>LOADED</td><td>Full dashboard confirms generator loaded.</td></tr>
+            <tr><td class="step-num">7</td><td><code>stop_generator</code></td><td class="rew-pos">+0.113</td><td>+0.228</td><td>COOLDOWN</td><td>Initiate cooldown (300s for turbocharger).</td></tr>
+            <tr><td class="step-num">8</td><td><code>wait</code></td><td class="rew-neg">−0.022</td><td>+0.207</td><td>COOLDOWN</td><td>Allow cooldown to proceed.</td></tr>
+            <tr><td class="step-num">9</td><td><code>diagnose GEN-1</code></td><td class="rew-neg">−0.032</td><td>+0.175</td><td>cooldown</td><td>Post-shutdown inspection.</td></tr>
+            <tr class="resolved-row"><td class="step-num">10</td><td><code>acknowledge_alarm</code></td><td class="rew-big">+0.392</td><td><strong>+0.567</strong></td><td>COOLDOWN</td><td><strong>RESOLVED.</strong> Protocol complete. Speed bonus: (15−10)/15 = +0.333.</td></tr>
+          </tbody>
+        </table>
+        <div class="demo-analysis">
+          <h4>Protocol Enforcement</h4>
+          <p>B3 tracks four internal flags that must be set <strong>in order</strong>:</p>
+          <ul>
+            <li><strong>_started</strong> — <code style="color:var(--cyan);font-size:0.72rem">start_generator</code> issued</li>
+            <li><strong>_verified</strong> — <code style="color:var(--cyan);font-size:0.72rem">diagnose GEN-1</code> while generator is running</li>
+            <li><strong>_stopped</strong> — <code style="color:var(--cyan);font-size:0.72rem">stop_generator</code> (only if started + verified)</li>
+            <li><strong>_completed</strong> — <code style="color:var(--cyan);font-size:0.72rem">acknowledge_alarm</code> (only if stopped)</li>
+          </ul>
+          <p>The agent <strong>cannot skip steps</strong> — issuing <code style="color:var(--cyan);font-size:0.72rem">stop_generator</code> before <code style="color:var(--cyan);font-size:0.72rem">diagnose GEN-1</code> won't set <code style="color:var(--cyan);font-size:0.72rem">_stopped</code>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 8: B4 Default -->
+    <div class="demo-item" id="demo8">
+      <div class="demo-header" onclick="toggleDemo('demo8')">
+        <div class="demo-header-left">
+          <span class="demo-badge">B4</span>
+          <div class="demo-title-block">
+            <h3>Power Failure Cascade — Default</h3>
+            <div class="demo-subtitle">
+              <span>Default Facility (160 kW)</span>
+              <span>8 steps</span>
+              <span style="background:var(--red-dim);color:var(--red);padding:0.05rem 0.4rem;border-radius:999px;font-size:0.6rem;font-weight:700">HARD</span>
+            </div>
+          </div>
+        </div>
+        <div class="demo-header-right">
+          <span class="demo-reward">+0.934</span>
+          <svg class="demo-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+        </div>
+      </div>
+      <div class="demo-body">
+        <div class="demo-context">
+          Total utility power loss. UPS batteries bridging while generator starts. Generator warmup extended (15s vs default 8s). Agent must manage battery life, consider load shedding, and verify generator operation.
+        </div>
+        <table class="demo-steps">
+          <thead><tr><th>#</th><th>Command</th><th>Reward</th><th>Cumul</th><th>Key Metrics</th><th>Reasoning</th></tr></thead>
+          <tbody>
+            <tr><td class="step-num">1</td><td><code>check_status</code></td><td class="rew-pos">+0.108</td><td>+0.108</td><td>UPS battery, SOC ~97%</td><td>Utility LOST. ATS transferring. Generator auto-starting.</td></tr>
+            <tr><td class="step-num">2</td><td><code>diagnose UPS-1</code></td><td class="rew-pos">+0.131</td><td>+0.239</td><td>on_battery, SOC=95%</td><td><strong>Resolution gate unlocked.</strong> Battery draining ~2%/step at 160 kW.</td></tr>
+            <tr><td class="step-num">3</td><td><code>diagnose UPS-2</code></td><td class="rew-pos">+0.078</td><td>+0.317</td><td>on_battery, SOC=90%</td><td>Redundant UPS also on battery.</td></tr>
+            <tr><td class="step-num">4</td><td><code>start_generator</code></td><td class="rew-neg">−0.007</td><td>+0.310</td><td>Gen: CRANKING</td><td>Gen already auto-starting — slight negative for redundant command.</td></tr>
+            <tr><td class="step-num">5</td><td><code>set_rack_load A-05 4</code></td><td class="rew-pos">+0.062</td><td>+0.371</td><td>IT: 156 kW</td><td>Shed 4 kW to extend battery life.</td></tr>
+            <tr><td class="step-num">6</td><td><code>set_rack_load B-05 4</code></td><td class="rew-pos">+0.054</td><td>+0.425</td><td>IT: 152 kW</td><td>Total shed: 8 kW (5% of IT load).</td></tr>
+            <tr><td class="step-num">7</td><td><code>wait</code></td><td class="rew-neg">−0.052</td><td>+0.373</td><td>Gen LOADED, ATS: GEN</td><td>Generator online. Battery recharging.</td></tr>
+            <tr class="resolved-row"><td class="step-num">8</td><td><code>diagnose GEN-1</code></td><td class="rew-big">+0.561</td><td><strong>+0.934</strong></td><td>state=loaded</td><td><strong>RESOLVED.</strong> Gen loaded, temps OK, SOC &gt;10%. Speed bonus: (20−8)/20 = +0.600.</td></tr>
+          </tbody>
+        </table>
+        <div class="demo-analysis">
+          <h4>Battery SOC Timeline</h4>
+          <table class="demo-compare">
+            <thead><tr><th>Step</th><th>SOC (UPS-1)</th><th>Event</th></tr></thead>
+            <tbody>
+              <tr><td>0</td><td>97%</td><td>Utility lost</td></tr>
+              <tr><td>2</td><td>95%</td><td>Diagnosed</td></tr>
+              <tr><td>4</td><td>~90%</td><td>Gen starting</td></tr>
+              <tr><td>6</td><td>~87%</td><td>Load shed</td></tr>
+              <tr><td>7</td><td>~88%</td><td>Gen loaded, recharging begins</td></tr>
+              <tr><td>8</td><td>~89%</td><td>Resolved</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 9: B4 Small -->
+    <div class="demo-item" id="demo9">
+      <div class="demo-header" onclick="toggleDemo('demo9')">
+        <div class="demo-header-left">
+          <span class="demo-badge">B4</span>
+          <div class="demo-title-block">
+            <h3>Power Failure Cascade — Small</h3>
+            <div class="demo-subtitle">
+              <span>Small Facility (80 kW)</span>
+              <span>8 steps</span>
+              <span style="background:var(--red-dim);color:var(--red);padding:0.05rem 0.4rem;border-radius:999px;font-size:0.6rem;font-weight:700">HARD</span>
+            </div>
+          </div>
+        </div>
+        <div class="demo-header-right">
+          <span class="demo-reward">+0.948</span>
+          <svg class="demo-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/></svg>
+        </div>
+      </div>
+      <div class="demo-body">
+        <div class="demo-context">
+          Same power loss scenario in a smaller facility: 80 kW IT load, 1 zone, 2 CRACs. Less redundancy means more aggressive load shedding is needed.
+        </div>
+        <table class="demo-steps">
+          <thead><tr><th>#</th><th>Command</th><th>Reward</th><th>Cumul</th><th>Key Metrics</th><th>Reasoning</th></tr></thead>
+          <tbody>
+            <tr><td class="step-num">1</td><td><code>check_status</code></td><td class="rew-pos">+0.111</td><td>+0.111</td><td>1 zone, UPS battery</td><td>80 kW IT, 1 zone, 2 CRACs. Less redundancy.</td></tr>
+            <tr><td class="step-num">2</td><td><code>diagnose UPS-1</code></td><td class="rew-pos">+0.133</td><td>+0.244</td><td>SOC=91%</td><td>Battery draining faster relative to capacity. Gate unlocked.</td></tr>
+            <tr><td class="step-num">3</td><td><code>start_generator</code></td><td class="rew-pos">+0.073</td><td>+0.317</td><td>Gen starting</td><td>Explicit start command.</td></tr>
+            <tr><td class="step-num">4</td><td><code>set_rack_load A-05 4</code></td><td class="rew-pos">+0.066</td><td>+0.383</td><td>IT: 76 kW</td><td>5% load reduction.</td></tr>
+            <tr><td class="step-num">5</td><td><code>set_rack_load A-04 4</code></td><td class="rew-pos">+0.056</td><td>+0.438</td><td>IT: 72 kW</td><td>10% load reduction.</td></tr>
+            <tr><td class="step-num">6</td><td><code>set_rack_load A-03 4</code></td><td class="rew-pos">+0.042</td><td>+0.481</td><td>IT: 68 kW</td><td>15% total load shed — more aggressive for smaller facility.</td></tr>
+            <tr><td class="step-num">7</td><td><code>wait</code></td><td class="rew-neg">−0.069</td><td>+0.412</td><td>Gen LOADED</td><td>Generator online. Battery recharging.</td></tr>
+            <tr class="resolved-row"><td class="step-num">8</td><td><code>diagnose GEN-1</code></td><td class="rew-big">+0.537</td><td><strong>+0.948</strong></td><td>state=loaded</td><td><strong>RESOLVED.</strong> Speed bonus: +0.600.</td></tr>
+          </tbody>
+        </table>
+        <div class="demo-analysis">
+          <h4>Small vs Default Comparison</h4>
+          <table class="demo-compare">
+            <thead><tr><th>Metric</th><th>Default (160 kW)</th><th>Small (80 kW)</th></tr></thead>
+            <tbody>
+              <tr><td>Racks shed</td><td>2 (8 kW, 5%)</td><td>3 (12 kW, 15%)</td></tr>
+              <tr><td>Cumulative reward</td><td>+0.934</td><td>+0.948</td></tr>
+            </tbody>
+          </table>
+          <p style="margin-top:0.5rem">The small facility earns slightly higher reward due to more aggressive proportional load shedding, producing a stronger positive signal from the power safety component.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resolution Gate Design -->
+    <div style="margin-top:2rem;padding:1.5rem;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg)">
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem">
+        <span style="color:var(--red)">&#x26A0;</span> Resolution Gate Design
+      </h3>
+      <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:1rem;line-height:1.65">
+        Each affected scenario requires the agent to actually <strong style="color:var(--text)">do something</strong> before resolution. Without these gates, scenarios A2, A4, and B4 would auto-resolve within 2–3 steps of passive <code style="color:var(--cyan);background:var(--terminal-bg);padding:0.1rem 0.35rem;border-radius:3px;font-size:0.75rem">wait</code> commands.
+      </p>
+      <table class="demo-gate-table">
+        <thead><tr><th>Scenario</th><th>Diagnosis Gate</th><th>Min Steps</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:var(--accent)">A2</strong></td><td>Must <code>diagnose CRAC-3</code></td><td>≥ 8 steps</td></tr>
+          <tr><td><strong style="color:var(--accent)">A4</strong></td><td>Must <code>diagnose CRAC-1</code> AND <code>diagnose CRAC-3</code></td><td>≥ 8 steps</td></tr>
+          <tr><td><strong style="color:var(--accent)">B4</strong></td><td>Must <code>diagnose UPS-*</code></td><td>≥ 8 steps</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.75rem;line-height:1.6">
+        <strong style="color:var(--text)">Reward ordering validates the design:</strong> fast diagnosis &gt; late diagnosis &gt; no diagnosis (never resolves).
+      </p>
+    </div>
+
+  </div>
+  </div><!-- /tabDemos -->
 
   <!-- Guide Tab -->
   <div class="guide-page" id="tabGuide">
@@ -1376,16 +1949,40 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
 
-  // Console tab uses display:contents, guide uses display:block
   const consoleEl = document.getElementById('tabConsole');
+  const demosEl = document.getElementById('tabDemos');
   const guideEl = document.getElementById('tabGuide');
+
+  consoleEl.classList.remove('active');
+  demosEl.classList.remove('active');
+  guideEl.classList.remove('active');
+
   if (tab === 'console') {
     consoleEl.classList.add('active');
-    guideEl.classList.remove('active');
+  } else if (tab === 'demos') {
+    demosEl.classList.add('active');
+    demosEl.scrollTop = 0;
   } else {
-    consoleEl.classList.remove('active');
     guideEl.classList.add('active');
     guideEl.scrollTop = 0;
+  }
+}
+
+// ─── Demo accordion ──────────────────────────────────────────────────
+function toggleDemo(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
+function openDemo(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    // Close all others
+    document.querySelectorAll('.demo-item.open').forEach(d => {
+      if (d.id !== id) d.classList.remove('open');
+    });
+    el.classList.add('open');
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   }
 }
 
