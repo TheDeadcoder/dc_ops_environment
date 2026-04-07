@@ -294,9 +294,9 @@ class TestB3GeneratorTest:
 
         assert obs.done is True
 
-    def test_uses_30s_steps(self) -> None:
+    def test_uses_10s_steps(self) -> None:
         s = get_scenario("B3")
-        assert s.game_time_per_step_s == 30.0
+        assert s.game_time_per_step_s == 10.0
 
 
 # ===========================================================================

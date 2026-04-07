@@ -179,6 +179,7 @@ class DcOpsEnvironment(Environment):
 
         # Initialize reward function with scenario-type-aware weights
         self._reward_fn = RewardFunction(scenario_type=self._scenario_type)
+        self._reward_fn.reset()  # Defensive: ensure clean state
 
         # Initialize simulations
         self._thermal_sim = ThermalSimulation(self._config)

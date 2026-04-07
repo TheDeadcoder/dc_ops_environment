@@ -215,7 +215,12 @@ class GeneratorTestProtocol(Scenario):
         if cmd.startswith("start_generator"):
             self._started = True
         if self._started and cmd.startswith("diagnose") and "gen" in cmd:
-            self._verified = True
+            # Only count as verified if generator is actually running
+            if power_sim and power_sim.state.generator.state in (
+                GeneratorState.READY, GeneratorState.LOADED,
+                GeneratorState.WARMING, GeneratorState.CRANKING,
+            ):
+                self._verified = True
         if cmd.startswith("stop_generator"):
             if self._started and self._verified:
                 self._stopped = True
@@ -289,7 +294,7 @@ class GeneratorTestProtocol(Scenario):
 
     @property
     def step_budget(self) -> int:
-        return 10
+        return 15
 
     @property
     def alert_message(self) -> str:
@@ -319,8 +324,9 @@ class GeneratorTestProtocol(Scenario):
 
     @property
     def game_time_per_step_s(self) -> float:
-        # Generator startup is ~17s, so 30s per step lets agent observe transitions
-        return 30.0
+        # Generator startup is ~17s. At 10s/step the agent can observe
+        # intermediate states (CRANKING, WARMING) across 2 steps.
+        return 10.0
 
 
 # ===========================================================================
