@@ -346,13 +346,6 @@ Pick a scenario to start
           <button id="sendBtn" class="btn btn-primary" onclick="sendCommand()" disabled>Send</button>
         </div>
         <div class="quick-actions" id="quickActions">
-          <button class="quick-btn" disabled onclick="quickCmd('check_status')">check_status</button>
-          <button class="quick-btn" disabled onclick="quickCmd('diagnose CRAC-1')">diagnose CRAC-1</button>
-          <button class="quick-btn" disabled onclick="quickCmd('diagnose CRAC-3')">diagnose CRAC-3</button>
-          <button class="quick-btn" disabled onclick="quickCmd('acknowledge_alarm')">ack_alarm</button>
-          <button class="quick-btn" disabled onclick="quickCmd('start_generator')">start_gen</button>
-          <button class="quick-btn" disabled onclick="quickCmd('wait')">wait</button>
-          <button class="quick-btn" disabled onclick="quickCmd('escalate')">escalate</button>
         </div>
       </div>
     </div>
@@ -449,6 +442,39 @@ const SCENARIOS = {
   B4: { name: 'Power Failure Cascade', type: 'power', diff: 'Hard' },
 };
 
+// Scenario-adaptive quick action definitions
+const QUICK_ACTIONS = {
+  _common: ['check_status', 'wait', 'acknowledge_alarm', 'escalate'],
+  A1: ['adjust_setpoint CRAC-1 22', 'adjust_setpoint CRAC-2 22', 'adjust_setpoint CRAC-3 22', 'adjust_setpoint CRAC-4 22', 'diagnose CRAC-1'],
+  A2: ['diagnose CRAC-3', 'diagnose CRAC-1', 'adjust_setpoint CRAC-1 20', 'adjust_setpoint CRAC-2 20', 'set_fan_speed CRAC-1 100', 'set_fan_speed CRAC-2 100'],
+  A4: ['diagnose CRAC-1', 'diagnose CRAC-3', 'adjust_setpoint CRAC-2 16', 'adjust_setpoint CRAC-4 16', 'set_fan_speed CRAC-2 100', 'set_fan_speed CRAC-4 100', 'set_rack_load B-05 4'],
+  B1: ['diagnose UPS-1', 'diagnose GEN-1', 'start_generator', 'stop_generator'],
+  B3: ['start_generator', 'diagnose GEN-1', 'stop_generator'],
+  B4: ['diagnose UPS-1', 'diagnose GEN-1', 'start_generator', 'set_rack_load A-05 4', 'set_rack_load B-05 4'],
+};
+
+function buildQuickActions(scenarioId) {
+  const container = document.getElementById('quickActions');
+  container.innerHTML = '';
+  const specific = QUICK_ACTIONS[scenarioId] || [];
+  const common = QUICK_ACTIONS._common;
+  const all = [...specific, ...common];
+  for (const cmd of all) {
+    const btn = document.createElement('button');
+    btn.className = 'quick-btn';
+    btn.disabled = !episodeActive;
+    // Short display label
+    let label = cmd;
+    if (cmd === 'acknowledge_alarm') label = 'ack_alarm';
+    else if (cmd === 'check_status') label = 'check_status';
+    else if (cmd === 'start_generator') label = 'start_gen';
+    else if (cmd === 'stop_generator') label = 'stop_gen';
+    btn.textContent = label;
+    btn.onclick = () => quickCmd(cmd);
+    container.appendChild(btn);
+  }
+}
+
 // ─── WebSocket connection ────────────────────────────────────────────
 function connectWebSocket() {
   return new Promise((resolve, reject) => {
@@ -523,6 +549,7 @@ function selectScenario(id) {
   const btn = document.getElementById('startBtn');
   btn.disabled = false;
   btn.textContent = `Start ${id}: ${SCENARIOS[id].name}`;
+  buildQuickActions(id);
 }
 
 function togglePanel(id) {
@@ -536,6 +563,8 @@ function setControlsEnabled(enabled) {
   document.getElementById('commandInput').disabled = !enabled;
   document.getElementById('sendBtn').disabled = !enabled;
   document.querySelectorAll('.quick-btn').forEach(b => b.disabled = !enabled);
+  // Rebuild quick actions if scenario changed while disabled
+  if (enabled && selectedScenario) buildQuickActions(selectedScenario);
 }
 
 function quickCmd(cmd) {
