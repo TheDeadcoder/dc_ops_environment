@@ -261,13 +261,17 @@ class DcOpsEnvironment(Environment):
                 reward=reward,
             )
 
-        # 2. Advance simulation
+        # 2. Handle acknowledge_alarm — clear alert before new alarms overwrite
+        if cmd_result.command_name == "acknowledge_alarm" and cmd_result.success:
+            self._alert = ""
+
+        # 3. Advance simulation
         thermal_alarms, power_alarms = self._advance_simulation()
 
-        # 3. Build alert from alarms
+        # 4. Build alert from alarms (only new critical/warning alarms override)
         self._update_alert(thermal_alarms, power_alarms)
 
-        # 4. Evaluate scenario (before reward, so progress is available)
+        # 5. Evaluate scenario (before reward, so progress is available)
         scenario_result = None
         if self._scenario:
             scenario_result = self._scenario.evaluate_step(
@@ -276,7 +280,7 @@ class DcOpsEnvironment(Environment):
                 self._state.step_count,
             )
 
-        # 5. Compute reward via RewardFunction
+        # 6. Compute reward via RewardFunction
         components = self._reward_fn.compute(
             self._thermal_sim, self._power_sim, cmd_result,
             action.command, self._action_history, scenario_result,
@@ -285,10 +289,10 @@ class DcOpsEnvironment(Environment):
 
         self._cumulative_reward += reward
 
-        # 6. Check termination
+        # 7. Check termination
         self._check_termination(thermal_alarms, power_alarms)
 
-        # 6b. Scenario resolution
+        # 7b. Scenario resolution
         if scenario_result and scenario_result.resolved and not self._done:
             self._done = True
             # Speed bonus: fraction of budget remaining

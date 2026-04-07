@@ -280,18 +280,10 @@ See [dc_ops_env/README.md](dc_ops_env/README.md) for full setup, deployment, and
 
 ---
 
-## Citation
+## Huggingface Space
 
-If you use DC-Ops in your research, please cite:
-
-```bibtex
-@software{dc_ops_2026,
-  title={DC-Ops: Physics-Based Datacenter Operations RL Environment},
-  year={2026},
-  url={https://github.com/your-org/dc-ops},
-  note={Built on Meta OpenEnv framework}
-}
-```
+Access the environment here:
+[Melikshah/dc_ops_env](https://huggingface.co/spaces/Melikshah/dc_ops_env)
 
 ## License
 

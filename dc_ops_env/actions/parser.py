@@ -24,6 +24,7 @@ from ..simulation.power import PowerSimulation
 from ..simulation.types import (
     CRACFaultType,
     CRACStatus,
+    GeneratorState,
     UPSMode,
 )
 
@@ -132,6 +133,53 @@ def _handle_diagnose(
                     f"Output: {ups.output_power_kw:.1f} kW",
                     f"Losses: {ups.heat_output_kw:.1f} kW",
                 ]
+                return CommandResult(True, "\n".join(lines), "diagnose", target)
+
+    # Check Generator
+    if power:
+        gen = power.state.generator
+        if gen.gen_id.lower() == target.lower():
+            lines = [
+                f"=== Diagnostic Report: {gen.gen_id} ===",
+                f"State: {gen.state.value}",
+                f"Output: {gen.output_power_kw:.1f} kW",
+                f"Load: {gen.load_fraction * 100:.1f}%",
+                f"Fuel Level: {gen.fuel_level_liters:.0f} L / {gen.fuel_tank_liters:.0f} L",
+                f"Fuel Consumption: {gen.fuel_consumption_lph:.1f} L/hr",
+                f"Fuel Remaining: {gen.fuel_remaining_hours:.1f} hrs",
+                f"Rated Capacity: {gen.rated_capacity_kw:.0f} kW",
+            ]
+            if gen.state == GeneratorState.OFF:
+                lines.append(">> Generator is OFF.")
+            elif gen.state in (GeneratorState.START_DELAY, GeneratorState.CRANKING, GeneratorState.WARMING):
+                lines.append(f">> Generator starting ({gen.state.value}), elapsed {gen.state_elapsed_s:.1f}s.")
+            elif gen.state == GeneratorState.READY:
+                lines.append(">> Generator READY to accept load.")
+            elif gen.state == GeneratorState.LOADED:
+                lines.append(f">> Generator LOADED at {gen.load_fraction * 100:.0f}%. Operating normally.")
+            elif gen.state == GeneratorState.COOLDOWN:
+                lines.append(f">> Generator in COOLDOWN, elapsed {gen.state_elapsed_s:.1f}s.")
+            return CommandResult(True, "\n".join(lines), "diagnose", target)
+
+    # Check PDUs
+    if power:
+        for pdu in power.state.pdus:
+            if pdu.pdu_id.lower() == target.lower():
+                lines = [
+                    f"=== Diagnostic Report: {pdu.pdu_id} ===",
+                    f"Input Power: {pdu.input_power_kw:.1f} kW",
+                    f"Output Power: {pdu.output_power_kw:.1f} kW",
+                    f"Load: {pdu.load_fraction * 100:.1f}%",
+                    f"Phase Imbalance: {pdu.phase_imbalance_pct:.1f}%",
+                    f"Breaker Tripped: {pdu.breaker_tripped}",
+                    f"Overload: {pdu.overload}",
+                ]
+                if pdu.breaker_tripped:
+                    lines.append(">> FAULT: Breaker tripped!")
+                elif pdu.overload:
+                    lines.append(">> WARNING: PDU overloaded.")
+                else:
+                    lines.append(">> No faults detected. PDU operating normally.")
                 return CommandResult(True, "\n".join(lines), "diagnose", target)
 
     return CommandResult(False, f"Unit '{target}' not found.", "diagnose", target)

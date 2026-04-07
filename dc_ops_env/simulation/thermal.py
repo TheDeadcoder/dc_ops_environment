@@ -485,16 +485,18 @@ class ThermalSimulation:
         self._state.outside_temp_c = temp_c
 
     def _find_crac(self, unit_id: str) -> CRACState | None:
+        target = unit_id.lower()
         for zone in self._state.zones:
             for crac in zone.crac_units:
-                if crac.unit_id == unit_id:
+                if crac.unit_id.lower() == target:
                     return crac
         return None
 
     def _find_rack(self, rack_id: str) -> RackState | None:
+        target = rack_id.lower()
         for zone in self._state.zones:
             for rack in zone.racks:
-                if rack.rack_id == rack_id:
+                if rack.rack_id.lower() == target:
                     return rack
         return None
 
